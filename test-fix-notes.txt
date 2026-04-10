@@ -1,0 +1,9 @@
+Test Fix Notes - April 10, 2026
+
+Issue: Clicking "New Application" (Credit Scoring) did NOT navigate - still showing SME Risk Wizard.
+The screen state isn't changing. The sidebar click handler might not be working properly for some items.
+
+The SME Risk "New Analysis" wizard IS working now (React.Fragment fix resolved it).
+But clicking other sidebar items doesn't seem to change the screen.
+
+Need to investigate the sidebar click handler.

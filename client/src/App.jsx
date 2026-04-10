@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Collections, { collectionsSectionLabel, collectionsNavKeys } from "./Collections";
 import VehicleValuation, { vehicleValuationSection, vehicleValuationNav } from "./VehicleValuation";
 
@@ -1492,8 +1492,8 @@ export default function App() {
     switch (screen) {
       case "dashboard": return <Dashboard />;
       case "wizard": return <Wizard />;
-      case "result": return <Result />;
-      case "applications": return <Applications />;
+      case "result": return <RiskResult />;
+      case "applications": return <RiskApplications />;
       case "csDashboard": return <CsDashboard />;
       case "csWizard": return <CsWizard />;
       case "csResult": return <CsResult />;
