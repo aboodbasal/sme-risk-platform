@@ -1,0 +1,26 @@
+VISUAL REVIEW NOTES - Browser Testing
+======================================
+
+1. SIDEBAR:
+- All 5 sections visible: SME Risk Intelligence, Credit Scoring Engine, Sharia Audit, Collections & Early Warning, Vehicle Valuation AI
+- Section labels are TRUNCATED - sidebar is too narrow, text gets cut off (e.g., "SME RISK INTEL..." "COLLECTIONS & ... WARNING", "VEHICLE VALU...")
+- Nav items also truncated: "Portfolio D..." "Early War..." "Valuation D..." "New Valua..." "Valuation H..." "Market Ins..."
+- Sidebar has no scroll indicator despite many items
+- "Alpha Pro" brand name visible but tagline not visible
+- Settings at bottom is visible
+
+2. DASHBOARD (SME Risk):
+- Clean layout with 4 stat cards
+- Risk Distribution section with Low/Medium/High
+- Recent Applications table with empty state message
+- "New Analysis" button in red - good
+
+3. SIDEBAR WIDTH ISSUE:
+- The sidebar is too narrow for the amount of text
+- Section headers and nav items are being cut off
+- This is a significant UX issue
+
+4. Overall layout:
+- Clean, professional look
+- Good use of white space
+- Cards and sections well-organized

@@ -1,4 +1,5 @@
 import express from "express";
+import { validateRequest, callAnthropic } from "../middleware/errorHandler.js";
 const router = express.Router();
 
 const SYSTEM_PROMPT = `You are the Sharia Compliance Audit Engine for Tawkelat Finance (تَوكُلات للتمويل), a Saudi NBFI licensed by SAMA.
@@ -68,31 +69,20 @@ IMPORTANT RULES:
 - Score conservatively — when in doubt, flag as a potential issue`;
 
 router.post("/", async (req, res) => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "ANTHROPIC_API_KEY not set" });
+  const validationError = validateRequest(req);
+  if (validationError) return res.status(validationError.status).json(validationError.body);
 
   const { userMessage, lang } = req.body;
-  if (!userMessage) return res.status(400).json({ error: "userMessage is required" });
+  const arSuffix = lang === "ar" ? "\n\nIMPORTANT: Return ALL text values in Arabic (العربية). Severity values should be in Arabic: حرج، جوهري، بسيط، استشاري. Status values: متوافق تماماً، مشكلات بسيطة، مخالفات جوهرية، غير متوافق. Keep JSON keys in English." : "";
 
-  const messages = [{ role: "user", content: userMessage + (lang === "ar" ? "\n\nIMPORTANT: Return ALL text values in Arabic (العربية). Severity values should be in Arabic: حرج، جوهري، بسيط، استشاري. Status values: متوافق تماماً، مشكلات بسيطة، مخالفات جوهرية، غير متوافق. Keep JSON keys in English." : "") }];
+  const { result, error, httpStatus } = await callAnthropic({
+    system: SYSTEM_PROMPT,
+    userMessage: userMessage + arSuffix,
+    maxTokens: 4096,
+  });
 
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4096, system: SYSTEM_PROMPT, messages }),
-    });
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: data.error.message || "Anthropic API error" });
-
-    let text = data.content?.[0]?.text || "";
-    text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    const parsed = JSON.parse(text);
-    res.json({ result: parsed });
-  } catch (err) {
-    console.error("Sharia audit error:", err);
-    res.status(500).json({ error: err.message || "Internal server error" });
-  }
+  if (error) return res.status(httpStatus || 502).json({ error });
+  res.json({ result });
 });
 
 export default router;

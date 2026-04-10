@@ -1,4 +1,5 @@
 import express from "express";
+import { validateRequest, callAnthropic } from "../middleware/errorHandler.js";
 const router = express.Router();
 
 const SYSTEM_PROMPT = `You are a credit risk analyst specializing in SME financing in Saudi Arabia under SAMA (Saudi Central Bank) regulations and Islamic finance principles.
@@ -38,56 +39,18 @@ Return ONLY valid JSON, no markdown, no extra text:
 If Arabic language requested: use اقبل|راجع|ارفض for recommendation, respond in Arabic for all text fields.`;
 
 router.post("/", async (req, res) => {
-  try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: "ANTHROPIC_API_KEY not configured on server." });
-    }
+  const validationError = validateRequest(req);
+  if (validationError) return res.status(validationError.status).json(validationError.body);
 
-    const { userMessage, lang } = req.body;
-    if (!userMessage) {
-      return res.status(400).json({ error: "userMessage is required." });
-    }
+  const { userMessage, lang } = req.body;
+  const system = lang === "ar"
+    ? SYSTEM_PROMPT + "\n\nIMPORTANT: Respond in Arabic. recommendation must be: اقبل | راجع | ارفض"
+    : SYSTEM_PROMPT;
 
-    const system = lang === "ar"
-      ? SYSTEM_PROMPT + "\n\nIMPORTANT: Respond in Arabic. recommendation must be: اقبل | راجع | ارفض"
-      : SYSTEM_PROMPT;
+  const { result, error, httpStatus } = await callAnthropic({ system, userMessage, maxTokens: 1200 });
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1200,
-        system,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      return res.status(response.status).json({ error: `Anthropic API error: ${err}` });
-    }
-
-    const data = await response.json();
-    const rawText = data.content?.[0]?.text || "{}";
-
-    let parsed;
-    try {
-      parsed = JSON.parse(rawText.replace(/```json|```/g, "").trim());
-    } catch {
-      return res.status(500).json({ error: "Failed to parse AI response.", raw: rawText });
-    }
-
-    res.json({ result: parsed });
-  } catch (err) {
-    console.error("Analyze route error:", err);
-    res.status(500).json({ error: err.message });
-  }
+  if (error) return res.status(httpStatus || 502).json({ error });
+  res.json({ result });
 });
 
 export default router;

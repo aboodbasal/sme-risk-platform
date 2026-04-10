@@ -1,4 +1,5 @@
 import express from "express";
+import { validateRequest, callAnthropic } from "../middleware/errorHandler.js";
 const router = express.Router();
 
 const SYSTEM_PROMPT = `You are a senior collections analyst specializing in Islamic finance portfolio management in Saudi Arabia, operating under SAMA (Saudi Central Bank) regulations.
@@ -75,36 +76,23 @@ Return ONLY valid JSON:
 
 If Arabic requested: riskTier in Arabic (منتظم|مراقبة|في خطر|حرج|متعثر), all text fields in Arabic.`;
 
+const SUMMARY_PROMPT = "You are a portfolio risk analyst. Generate a concise portfolio risk summary narrative. Return JSON: { \"summary\": \"<3 paragraph narrative>\" }";
+
 router.post("/", async (req, res) => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "ANTHROPIC_API_KEY not set" });
+  const validationError = validateRequest(req);
+  if (validationError) return res.status(validationError.status).json(validationError.body);
 
   const { userMessage, lang, summaryMode } = req.body;
-  if (!userMessage) return res.status(400).json({ error: "userMessage is required" });
+  const arSuffix = lang === "ar" ? "\n\nIMPORTANT: Return ALL text values in Arabic. Risk tier values: منتظم، مراقبة، في خطر، حرج، متعثر. Keep JSON keys in English." : "";
 
-  const systemPrompt = summaryMode
-    ? "You are a portfolio risk analyst. Generate a concise portfolio risk summary narrative. Return JSON: { \"summary\": \"<3 paragraph narrative>\" }"
-    : SYSTEM_PROMPT;
+  const { result, error, httpStatus } = await callAnthropic({
+    system: summaryMode ? SUMMARY_PROMPT : SYSTEM_PROMPT,
+    userMessage: userMessage + arSuffix,
+    maxTokens: 3000,
+  });
 
-  const messages = [{ role: "user", content: userMessage + (lang === "ar" ? "\n\nIMPORTANT: Return ALL text values in Arabic. Risk tier values: منتظم، مراقبة، في خطر، حرج، متعثر. Keep JSON keys in English." : "") }];
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 3000, system: systemPrompt, messages }),
-    });
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: data.error.message || "Anthropic API error" });
-
-    let text = data.content?.[0]?.text || "";
-    text = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    const parsed = JSON.parse(text);
-    res.json({ result: parsed });
-  } catch (err) {
-    console.error("Collections analysis error:", err);
-    res.status(500).json({ error: err.message || "Internal server error" });
-  }
+  if (error) return res.status(httpStatus || 502).json({ error });
+  res.json({ result });
 });
 
 export default router;

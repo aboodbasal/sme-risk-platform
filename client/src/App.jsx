@@ -1344,49 +1344,143 @@ export default function App() {
   );
 
   /* ═══════════════════════════════════════════════════════════════
-     SIDEBAR
+     SIDEBAR — Collapsible Accordion with Scroll
      ═══════════════════════════════════════════════════════════════ */
+  const sidebarSections = [
+    { key: "risk", label: t.sectionRisk, icon: "🏦", items: [
+      { label: t.nav.dashboard, icon: "📊", target: "dashboard" },
+      { label: t.nav.newAnalysis, icon: "➕", target: "wizard" },
+      { label: t.nav.applications, icon: "📋", target: "applications" },
+    ]},
+    { key: "credit", label: t.sectionCredit, icon: "💳", items: [
+      { label: t.nav.csDashboard, icon: "📊", target: "csDashboard" },
+      { label: t.nav.csNewApp, icon: "📝", target: "csWizard" },
+      { label: t.nav.csHistory, icon: "📂", target: "csHistory" },
+    ]},
+    { key: "sharia", label: t.sectionSharia, icon: "🕌", items: [
+      { label: t.nav.saDashboard, icon: "📊", target: "saDashboard" },
+      { label: t.nav.saNewAudit, icon: "📜", target: "saNewAudit" },
+      { label: t.nav.saHistory, icon: "📚", target: "saHistory" },
+      { label: t.nav.saStandards, icon: "⚖️", target: "saStandards" },
+    ]},
+    { key: "collections", label: t.sectionCollections, icon: "📈", items: [
+      { label: t.nav.colDashboard, icon: "📊", target: "colDashboard" },
+      { label: t.nav.colEarlyWarning, icon: "⚠️", target: "colEarlyWarning" },
+      { label: t.nav.colCallList, icon: "📞", target: "colCallList" },
+      { label: t.nav.colAddAccount, icon: "➕", target: "colAddAccount" },
+      { label: t.nav.colReports, icon: "📊", target: "colReports" },
+    ]},
+    { key: "vehicle", label: t.sectionVehicle, icon: "🚗", items: [
+      { label: t.nav.vvDashboard, icon: "📊", target: "vvDashboard" },
+      { label: t.nav.vvNewVal, icon: "◈", target: "vvNewVal" },
+      { label: t.nav.vvHistory, icon: "≡", target: "vvHistory" },
+      { label: t.nav.vvMarket, icon: "📊", target: "vvMarket" },
+    ]},
+  ];
+
+  // Determine which section the current screen belongs to
+  const getActiveSection = () => {
+    for (const sec of sidebarSections) {
+      if (sec.items.some(i => i.target === screen)) return sec.key;
+    }
+    return null;
+  };
+
+  const [openSections, setOpenSections] = useState(() => {
+    const active = getActiveSection();
+    return active ? { [active]: true } : { risk: true };
+  });
+
+  // Auto-open section when screen changes
+  useEffect(() => {
+    const active = getActiveSection();
+    if (active && !openSections[active]) {
+      setOpenSections(prev => ({ ...prev, [active]: true }));
+    }
+  }, [screen]);
+
+  const toggleSection = (key) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const Sidebar = () => {
     const navItem = (label, icon, target) => {
       const active = screen === target;
       return (
         <div key={target} onClick={() => setScreen(target)} style={{
-          padding: "9px 14px", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 8,
-          background: active ? "rgba(190,30,45,0.15)" : "transparent",
-          color: active ? "#BE1E2D" : "#444", fontWeight: active ? 600 : 400, borderRadius: 6, margin: "1px 6px"
-        }}>{icon} {label}</div>
+          padding: "8px 12px 8px 28px", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 8,
+          background: active ? "rgba(190,30,45,0.12)" : "transparent",
+          color: active ? "#BE1E2D" : "#555", fontWeight: active ? 600 : 400, borderRadius: 6, margin: "1px 6px",
+          transition: "all 0.15s ease",
+          borderLeft: !isRtl && active ? "3px solid #BE1E2D" : !isRtl ? "3px solid transparent" : "none",
+          borderRight: isRtl && active ? "3px solid #BE1E2D" : isRtl ? "3px solid transparent" : "none",
+        }}>
+          <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+        </div>
       );
     };
-    const section = (title) => <div style={{ fontSize: 10, fontWeight: 700, color: "#aaa", padding: "12px 14px 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>{title}</div>;
+
     return (
-      <div style={{ width: 230, minHeight: "100vh", background: "#fafafa", borderRight: isRtl ? "none" : "0.5px solid #e8e8e8", borderLeft: isRtl ? "0.5px solid #e8e8e8" : "none", paddingTop: 16, flexShrink: 0 }}>
-        <div style={{ padding: "0 14px 16px", fontSize: 15, fontWeight: 700, color: "#BE1E2D" }}>Alpha Pro</div>
-        {section(t.sectionRisk)}
-        {navItem(t.nav.dashboard, "📊", "dashboard")}
-        {navItem(t.nav.newAnalysis, "➕", "wizard")}
-        {navItem(t.nav.applications, "📋", "applications")}
-        {section(t.sectionCredit)}
-        {navItem(t.nav.csDashboard, "💳", "csDashboard")}
-        {navItem(t.nav.csNewApp, "📝", "csWizard")}
-        {navItem(t.nav.csHistory, "📂", "csHistory")}
-        {section(t.sectionSharia)}
-        {navItem(t.nav.saDashboard, "🕌", "saDashboard")}
-        {navItem(t.nav.saNewAudit, "📜", "saNewAudit")}
-        {navItem(t.nav.saHistory, "📚", "saHistory")}
-        {navItem(t.nav.saStandards, "⚖️", "saStandards")}
-        {section(t.sectionCollections)}
-        {navItem(t.nav.colDashboard, "📈", "colDashboard")}
-        {navItem(t.nav.colEarlyWarning, "⚠️", "colEarlyWarning")}
-        {navItem(t.nav.colCallList, "📞", "colCallList")}
-        {navItem(t.nav.colAddAccount, "➕", "colAddAccount")}
-        {navItem(t.nav.colReports, "📊", "colReports")}
-        {section(t.sectionVehicle)}
-        {navItem(t.nav.vvDashboard, "🚗", "vvDashboard")}
-        {navItem(t.nav.vvNewVal, "◈", "vvNewVal")}
-        {navItem(t.nav.vvHistory, "≡", "vvHistory")}
-        {navItem(t.nav.vvMarket, "📊", "vvMarket")}
-        <div style={{ borderTop: "0.5px solid #e8e8e8", marginTop: 12 }} />
-        {navItem(t.nav.settings, "⚙️", "settings")}
+      <div style={{
+        width: 260, height: "100vh", position: "sticky", top: 0,
+        background: "linear-gradient(180deg, #fafafa 0%, #f5f5f8 100%)",
+        borderRight: isRtl ? "none" : "1px solid #e4e4e8",
+        borderLeft: isRtl ? "1px solid #e4e4e8" : "none",
+        display: "flex", flexDirection: "column", flexShrink: 0,
+        boxShadow: "2px 0 8px rgba(0,0,0,0.03)",
+      }}>
+        {/* Brand Header */}
+        <div style={{ padding: "20px 18px 16px", borderBottom: "1px solid #eee", flexShrink: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: "#BE1E2D", letterSpacing: -0.3 }}>Alpha Pro</div>
+          <div style={{ fontSize: 10, color: "#999", marginTop: 2, letterSpacing: 0.3 }}>{t.tagline}</div>
+        </div>
+
+        {/* Scrollable Nav Area */}
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "8px 0" }}>
+          {sidebarSections.map(sec => {
+            const isOpen = openSections[sec.key];
+            const hasActive = sec.items.some(i => i.target === screen);
+            return (
+              <div key={sec.key} style={{ marginBottom: 2 }}>
+                {/* Section Header — clickable accordion toggle */}
+                <div
+                  onClick={() => toggleSection(sec.key)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "10px 14px", cursor: "pointer",
+                    fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
+                    color: hasActive ? "#BE1E2D" : "#888",
+                    background: hasActive ? "rgba(190,30,45,0.04)" : "transparent",
+                    transition: "all 0.15s ease",
+                    userSelect: "none",
+                  }}
+                >
+                  <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>{sec.icon}</span>
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sec.label}</span>
+                  <span style={{
+                    fontSize: 10, transition: "transform 0.2s ease",
+                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    color: "#aaa", flexShrink: 0,
+                  }}>▼</span>
+                </div>
+                {/* Collapsible Items */}
+                <div style={{
+                  maxHeight: isOpen ? `${sec.items.length * 40}px` : "0px",
+                  overflow: "hidden",
+                  transition: "max-height 0.25s ease-in-out",
+                }}>
+                  {sec.items.map(item => navItem(item.label, item.icon, item.target))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bottom Settings — always visible */}
+        <div style={{ borderTop: "1px solid #eee", padding: "4px 0", flexShrink: 0 }}>
+          {navItem(t.nav.settings, "⚙️", "settings")}
+        </div>
       </div>
     );
   };
