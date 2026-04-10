@@ -1,0 +1,103 @@
+LIVE PLATFORM TEST NOTES - v5.1
+================================
+
+TEST 1: Initial Load - SME Risk Dashboard
+- Sidebar shows all 5 module sections + Settings at bottom
+- All sections appear EXPANDED by default (all nav items visible)
+- ISSUE: Sidebar text is still being truncated/cut off on the left side
+  - "SME RISK INT..." truncated
+  - "CREDIT SCOR..." truncated  
+  - "SHARIA AUDI..." truncated
+  - "COLLECTIONS... EARLY WAR..." truncated
+  - "VEHICLE EVE..." truncated
+- The sidebar width still appears too narrow for the section headers
+- SME Risk Dashboard content area looks good: KPI cards, Risk Distribution, Recent Applications
+- "New Analysis" button visible in top right
+- Settings visible at bottom of sidebar
+
+ISSUE TO FIX: Sidebar section headers are still truncating. Need to either:
+1. Make sidebar wider
+2. Use shorter section header text
+3. Allow text wrapping
+
+TEST 2: Accordion Collapse/Expand
+- Clicked Credit Scoring header - it EXPANDED (showing Credit Dashboard, New Application, History)
+- Sharia Audit section COLLAPSED (just showing header)
+- Collections section COLLAPSED
+- Vehicle Valuation section is showing sub-items (expanded)
+- SME Risk section remains expanded (active section)
+- Accordion partially working but sections that should be collapsed still show items
+- ISSUE: Section headers still truncated ("CREDIT SCOR... ENGINE", "SHARIA AUDI...", "COLLECTIONS... EARLY WAR...", "VEHICLE VA...ON AI")
+- The sidebar is still too narrow for the uppercase section headers
+
+CRITICAL FIX NEEDED: Sidebar width needs to increase OR section header font needs to be smaller OR text needs to wrap
+
+TEST 3: After sidebar width fix (280px + text wrap)
+- Sidebar is wider now - section headers are more readable
+- "SME RISK INTELLI...NCE" still slightly cut off
+- "CREDIT SCORING...GINE" slightly cut off
+- "SHARIA AUDIT" - fits fine
+- "COLLECTIONS & EARLY WARNING" - fits with wrapping
+- "VEHICLE VALU..." still slightly cut off
+- The accordion collapse/expand is working - Sharia Audit and Vehicle Valuation are collapsed
+- Credit Scoring Engine is collapsed, showing just the header
+- Need to use shorter labels for the section headers to fully fix this
+
+TEST 4: After shortening section labels
+- "SME RISK" - fits perfectly
+- "CREDIT SCORING" - fits but slightly cut off at end (SCORING...)
+- "SHARIA AUDIT" - fits perfectly
+- "COLLECTIONS & EWS" - still slightly cut off (COLLECTIONS &...)
+- "VEHICLE VALU..." - still cut off
+- The issue is the sidebar is rendering narrower than 280px in the screenshot
+- The accordion is working: Credit Scoring, Sharia Audit collapsed; SME Risk expanded (active)
+- Collections and Vehicle Valuation are collapsed
+
+The sidebar still appears narrow. This might be a viewport/rendering issue. Let me check if the sidebar is actually 280px wide.
+
+TEST 5: Sidebar measurements via JS console
+- Sidebar is actually 280px wide, viewport is 1280x1100
+- ALL section headers report overflow: false (no text overflow!)
+- The text is NOT actually being truncated - it's the browser screenshot annotation boxes overlapping
+- The actual rendering is correct - "SME Risk", "Credit Scoring", "Sharia Audit", "Collections & EWS", "Vehicle Valuation" all fit perfectly
+- CONCLUSION: Sidebar labels are fine. The visual truncation was just the red annotation boxes in the screenshot tool.
+
+TEST 6: Navigation between modules
+- Clicked Credit Dashboard → navigated correctly to Credit Scoring Dashboard (shows KPIs, Score Distribution)
+- Clicked Portfolio Dashboard → page title still shows "Credit Scoring Dashboard" 
+- BUG: Clicking Portfolio Dashboard (Collections) did NOT navigate to the Collections module
+- The sidebar shows Collections expanded but the content area didn't change
+- This might be because the click expanded the Collections section but didn't click the actual nav item
+- Need to re-click the Portfolio Dashboard item now that the section is expanded
+
+TEST 7: Collections navigation still not working
+- Clicked Portfolio Dashboard again (index 16) - still showing Credit Scoring Dashboard
+- The content area is NOT changing to the Collections module
+- The sidebar shows Collections section expanded but Portfolio Dashboard is NOT highlighted
+- Credit Dashboard is still highlighted as active
+- BUG: The Collections screen navigation targets (colDashboard, colEarlyWarning, etc.) may not be handled in renderScreen
+- Need to check the renderScreen function in App.jsx to see if Collections cases are properly mapped
+
+TEST 8: Collections module WORKS!
+- The programmatic click worked - Portfolio Collections Dashboard is now showing
+- The issue was with the browser tool's click targeting, not the actual code
+- Collections Dashboard shows: 8 accounts, SAR 7,968,000 total outstanding, 4 at risk, 37 avg DPD, 78% recovery rate
+- Portfolio Health bar showing: Current(2) 25%, Watch(2) 25%, At-Risk(2) 25%, Critical(1) 13%, Default(1) 13%
+- Risk tier cards: Current 2, Watch 2, At-Risk 2, Critical 1, Default 1
+- KPIs: Calls Due Today 4, Restructuring Candidates 3, Approaching Legal 1, Payments Today SAR 0
+- Account table showing all 8 accounts with proper risk tier badges (color-coded)
+- Sort dropdown (DPD) visible
+- "Run Early Warning Analysis" button in header
+- Sidebar correctly highlights Collections section and Portfolio Dashboard
+- CONCLUSION: Navigation works correctly. The browser tool click was landing on the section header instead of the nav item.
+
+TEST 9: Arabic/RTL mode
+- Settings page shows "الإعدادات" correctly
+- Language toggle shows English / العربية buttons, العربية is active (red)
+- Sidebar is now on the RIGHT side (RTL working correctly)
+- All sidebar section labels in Arabic: مخاطر المنشآت, التصنيف الائتماني, المراجعة الشرعية, التحصيل والإنذار, تقييم المركبات
+- All nav items translated to Arabic
+- Content area shows Settings in Arabic with About section in Arabic
+- RTL layout is correct - sidebar right, content left
+- All 5 sections visible with proper Arabic labels
+- PASS: Arabic/RTL mode working correctly

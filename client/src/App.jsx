@@ -10,11 +10,11 @@ const T = {
     brand: "Alpha Pro MENA",
     tagline: "Powered by AI · SAMA Compliant",
     credit: "Alpha Pro MENA × Baker Tilly",
-    sectionRisk: "SME Risk Intelligence",
-    sectionCredit: "Credit Scoring Engine",
+    sectionRisk: "SME Risk",
+    sectionCredit: "Credit Scoring",
     sectionSharia: "Sharia Audit",
-    sectionCollections: "Collections & Early Warning",
-    sectionVehicle: "Vehicle Valuation AI",
+    sectionCollections: "Collections & EWS",
+    sectionVehicle: "Vehicle Valuation",
     nav: { dashboard: "Dashboard", newAnalysis: "New Analysis", applications: "Applications", settings: "Settings",
            csDashboard: "Credit Dashboard", csNewApp: "New Application", csHistory: "History",
            saDashboard: "Audit Dashboard", saNewAudit: "New Audit", saHistory: "Audit History", saStandards: "Standards Library",
@@ -212,11 +212,11 @@ const T = {
     brand: "ألفا برو مينا",
     tagline: "مدعوم بالذكاء الاصطناعي · متوافق مع ساما",
     credit: "ألفا برو مينا × بيكر تيلي",
-    sectionRisk: "تقييم مخاطر المنشآت",
-    sectionCredit: "نظام تقييم الائتمان",
+    sectionRisk: "مخاطر المنشآت",
+    sectionCredit: "التصنيف الائتماني",
     sectionSharia: "المراجعة الشرعية",
-    sectionCollections: "التحصيل والإنذار المبكر",
-    sectionVehicle: "نظام تقييم المركبات الذكي",
+    sectionCollections: "التحصيل والإنذار",
+    sectionVehicle: "تقييم المركبات",
     nav: { dashboard: "لوحة التحكم", newAnalysis: "تحليل جديد", applications: "الطلبات", settings: "الإعدادات",
            csDashboard: "لوحة الائتمان", csNewApp: "طلب جديد", csHistory: "السجل",
            saDashboard: "لوحة المراجعة", saNewAudit: "مراجعة جديدة", saHistory: "سجل المراجعات", saStandards: "مكتبة المعايير",
@@ -1416,14 +1416,14 @@ export default function App() {
           borderRight: isRtl && active ? "3px solid #BE1E2D" : isRtl ? "3px solid transparent" : "none",
         }}>
           <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>{icon}</span>
-          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{label}</span>
         </div>
       );
     };
 
     return (
       <div style={{
-        width: 260, height: "100vh", position: "sticky", top: 0,
+        width: 280, minWidth: 280, height: "100vh", position: "sticky", top: 0,
         background: "linear-gradient(180deg, #fafafa 0%, #f5f5f8 100%)",
         borderRight: isRtl ? "none" : "1px solid #e4e4e8",
         borderLeft: isRtl ? "1px solid #e4e4e8" : "none",
@@ -1449,7 +1449,7 @@ export default function App() {
                   style={{
                     display: "flex", alignItems: "center", gap: 8,
                     padding: "10px 14px", cursor: "pointer",
-                    fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
+                    fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
                     color: hasActive ? "#BE1E2D" : "#888",
                     background: hasActive ? "rgba(190,30,45,0.04)" : "transparent",
                     transition: "all 0.15s ease",
@@ -1457,7 +1457,7 @@ export default function App() {
                   }}
                 >
                   <span style={{ fontSize: 14, width: 20, textAlign: "center", flexShrink: 0 }}>{sec.icon}</span>
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sec.label}</span>
+                  <span style={{ flex: 1, lineHeight: 1.3 }}>{sec.label}</span>
                   <span style={{
                     fontSize: 10, transition: "transform 0.2s ease",
                     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
