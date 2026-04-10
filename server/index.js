@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import analyzeRouter from "./routes/analyze.js";
 import creditScoreRouter from "./routes/credit-score.js";
 import shariaAuditRouter from "./routes/sharia-audit.js";
+import collectionsRouter from "./routes/collections.js";
 
 dotenv.config();
 
@@ -21,12 +22,13 @@ app.use(express.json({ limit: "10mb" }));
 app.use("/api/analyze", analyzeRouter);
 app.use("/api/credit-score", creditScoreRouter);
 app.use("/api/sharia-audit", shariaAuditRouter);
+app.use("/api/collections", collectionsRouter);
 
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    version: "3.0.0",
-    platform: "Alpha Pro MENA — SME Risk Intelligence, Credit Scoring & Sharia Audit",
+    version: "4.0.0",
+    platform: "Alpha Pro MENA — SME Risk, Credit Scoring, Sharia Audit & Collections",
     timestamp: new Date().toISOString(),
   });
 });

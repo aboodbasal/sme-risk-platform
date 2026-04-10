@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import Collections, { collectionsSectionLabel, collectionsNavKeys } from "./Collections";
 
 /* ═══════════════════════════════════════════════════════════════
    TRANSLATIONS
@@ -11,9 +12,11 @@ const T = {
     sectionRisk: "SME Risk Intelligence",
     sectionCredit: "Credit Scoring Engine",
     sectionSharia: "Sharia Audit",
+    sectionCollections: "Collections & Early Warning",
     nav: { dashboard: "Dashboard", newAnalysis: "New Analysis", applications: "Applications", settings: "Settings",
            csDashboard: "Credit Dashboard", csNewApp: "New Application", csHistory: "History",
-           saDashboard: "Audit Dashboard", saNewAudit: "New Audit", saHistory: "Audit History", saStandards: "Standards Library" },
+           saDashboard: "Audit Dashboard", saNewAudit: "New Audit", saHistory: "Audit History", saStandards: "Standards Library",
+           colDashboard: "Portfolio Dashboard", colEarlyWarning: "Early Warning", colCallList: "Call List", colAddAccount: "Add Account", colReports: "Reports" },
     /* ── SME Risk translations ── */
     dashboard: {
       title: "Portfolio Overview", newBtn: "New Analysis", totalApps: "Total Applications", avgRisk: "Avg Risk Score",
@@ -209,9 +212,11 @@ const T = {
     sectionRisk: "تقييم مخاطر المنشآت",
     sectionCredit: "نظام تقييم الائتمان",
     sectionSharia: "المراجعة الشرعية",
+    sectionCollections: "التحصيل والإنذار المبكر",
     nav: { dashboard: "لوحة التحكم", newAnalysis: "تحليل جديد", applications: "الطلبات", settings: "الإعدادات",
            csDashboard: "لوحة الائتمان", csNewApp: "طلب جديد", csHistory: "السجل",
-           saDashboard: "لوحة المراجعة", saNewAudit: "مراجعة جديدة", saHistory: "سجل المراجعات", saStandards: "مكتبة المعايير" },
+           saDashboard: "لوحة المراجعة", saNewAudit: "مراجعة جديدة", saHistory: "سجل المراجعات", saStandards: "مكتبة المعايير",
+           colDashboard: "لوحة المحفظة", colEarlyWarning: "الإنذار المبكر", colCallList: "قائمة المكالمات", colAddAccount: "إضافة حساب", colReports: "التقارير" },
     dashboard: {
       title: "نظرة عامة على المحفظة", newBtn: "تحليل جديد", totalApps: "إجمالي الطلبات", avgRisk: "متوسط درجة المخاطر",
       approvalRate: "نسبة القبول", underReview: "ريال تحت المراجعة", riskDist: "توزيع المخاطر",
@@ -1364,6 +1369,12 @@ export default function App() {
         {navItem(t.nav.saNewAudit, "📜", "saNewAudit")}
         {navItem(t.nav.saHistory, "📚", "saHistory")}
         {navItem(t.nav.saStandards, "⚖️", "saStandards")}
+        {section(t.sectionCollections)}
+        {navItem(t.nav.colDashboard, "📈", "colDashboard")}
+        {navItem(t.nav.colEarlyWarning, "⚠️", "colEarlyWarning")}
+        {navItem(t.nav.colCallList, "📞", "colCallList")}
+        {navItem(t.nav.colAddAccount, "➕", "colAddAccount")}
+        {navItem(t.nav.colReports, "📊", "colReports")}
         <div style={{ borderTop: "0.5px solid #e8e8e8", marginTop: 12 }} />
         {navItem(t.nav.settings, "⚙️", "settings")}
       </div>
@@ -1388,6 +1399,8 @@ export default function App() {
       case "saResult": return <SaResult />;
       case "saHistory": return <SaHistory />;
       case "saStandards": return <SaStandards />;
+      case "colDashboard": case "colEarlyWarning": case "colResult": case "colCallList": case "colAddAccount": case "colReports":
+        return <Collections lang={lang} screen={screen} setScreen={setScreen} />;
       case "settings": return <Settings />;
       default: return <Dashboard />;
     }
