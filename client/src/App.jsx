@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Collections, { collectionsSectionLabel, collectionsNavKeys } from "./Collections";
+import VehicleValuation, { vehicleValuationSection, vehicleValuationNav } from "./VehicleValuation";
 
 /* ═══════════════════════════════════════════════════════════════
    TRANSLATIONS
@@ -13,10 +14,12 @@ const T = {
     sectionCredit: "Credit Scoring Engine",
     sectionSharia: "Sharia Audit",
     sectionCollections: "Collections & Early Warning",
+    sectionVehicle: "Vehicle Valuation AI",
     nav: { dashboard: "Dashboard", newAnalysis: "New Analysis", applications: "Applications", settings: "Settings",
            csDashboard: "Credit Dashboard", csNewApp: "New Application", csHistory: "History",
            saDashboard: "Audit Dashboard", saNewAudit: "New Audit", saHistory: "Audit History", saStandards: "Standards Library",
-           colDashboard: "Portfolio Dashboard", colEarlyWarning: "Early Warning", colCallList: "Call List", colAddAccount: "Add Account", colReports: "Reports" },
+           colDashboard: "Portfolio Dashboard", colEarlyWarning: "Early Warning", colCallList: "Call List", colAddAccount: "Add Account", colReports: "Reports",
+           vvDashboard: "Valuation Dashboard", vvNewVal: "New Valuation", vvHistory: "Valuation History", vvMarket: "Market Insights" },
     /* ── SME Risk translations ── */
     dashboard: {
       title: "Portfolio Overview", newBtn: "New Analysis", totalApps: "Total Applications", avgRisk: "Avg Risk Score",
@@ -213,10 +216,12 @@ const T = {
     sectionCredit: "نظام تقييم الائتمان",
     sectionSharia: "المراجعة الشرعية",
     sectionCollections: "التحصيل والإنذار المبكر",
+    sectionVehicle: "نظام تقييم المركبات الذكي",
     nav: { dashboard: "لوحة التحكم", newAnalysis: "تحليل جديد", applications: "الطلبات", settings: "الإعدادات",
            csDashboard: "لوحة الائتمان", csNewApp: "طلب جديد", csHistory: "السجل",
            saDashboard: "لوحة المراجعة", saNewAudit: "مراجعة جديدة", saHistory: "سجل المراجعات", saStandards: "مكتبة المعايير",
-           colDashboard: "لوحة المحفظة", colEarlyWarning: "الإنذار المبكر", colCallList: "قائمة المكالمات", colAddAccount: "إضافة حساب", colReports: "التقارير" },
+           colDashboard: "لوحة المحفظة", colEarlyWarning: "الإنذار المبكر", colCallList: "قائمة المكالمات", colAddAccount: "إضافة حساب", colReports: "التقارير",
+           vvDashboard: "لوحة التقييم", vvNewVal: "تقييم جديد", vvHistory: "سجل التقييمات", vvMarket: "رؤى السوق" },
     dashboard: {
       title: "نظرة عامة على المحفظة", newBtn: "تحليل جديد", totalApps: "إجمالي الطلبات", avgRisk: "متوسط درجة المخاطر",
       approvalRate: "نسبة القبول", underReview: "ريال تحت المراجعة", riskDist: "توزيع المخاطر",
@@ -1375,6 +1380,11 @@ export default function App() {
         {navItem(t.nav.colCallList, "📞", "colCallList")}
         {navItem(t.nav.colAddAccount, "➕", "colAddAccount")}
         {navItem(t.nav.colReports, "📊", "colReports")}
+        {section(t.sectionVehicle)}
+        {navItem(t.nav.vvDashboard, "🚗", "vvDashboard")}
+        {navItem(t.nav.vvNewVal, "◈", "vvNewVal")}
+        {navItem(t.nav.vvHistory, "≡", "vvHistory")}
+        {navItem(t.nav.vvMarket, "📊", "vvMarket")}
         <div style={{ borderTop: "0.5px solid #e8e8e8", marginTop: 12 }} />
         {navItem(t.nav.settings, "⚙️", "settings")}
       </div>
@@ -1401,6 +1411,8 @@ export default function App() {
       case "saStandards": return <SaStandards />;
       case "colDashboard": case "colEarlyWarning": case "colResult": case "colCallList": case "colAddAccount": case "colReports":
         return <Collections lang={lang} screen={screen} setScreen={setScreen} />;
+      case "vvDashboard": case "vvNewVal": case "vvResult": case "vvHistory": case "vvMarket":
+        return <VehicleValuation lang={lang} screen={screen} setScreen={setScreen} />;
       case "settings": return <Settings />;
       default: return <Dashboard />;
     }

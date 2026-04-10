@@ -8,6 +8,7 @@ import analyzeRouter from "./routes/analyze.js";
 import creditScoreRouter from "./routes/credit-score.js";
 import shariaAuditRouter from "./routes/sharia-audit.js";
 import collectionsRouter from "./routes/collections.js";
+import vehicleValuationRouter from "./routes/vehicle-valuation.js";
 
 dotenv.config();
 
@@ -23,12 +24,13 @@ app.use("/api/analyze", analyzeRouter);
 app.use("/api/credit-score", creditScoreRouter);
 app.use("/api/sharia-audit", shariaAuditRouter);
 app.use("/api/collections", collectionsRouter);
+app.use("/api/vehicle-valuation", vehicleValuationRouter);
 
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    version: "4.0.0",
-    platform: "Alpha Pro MENA — SME Risk, Credit Scoring, Sharia Audit & Collections",
+    version: "5.0.0",
+    platform: "Alpha Pro MENA — SME Risk, Credit Scoring, Sharia Audit, Collections & Vehicle Valuation",
     timestamp: new Date().toISOString(),
   });
 });

@@ -1,0 +1,31 @@
+Vehicle Valuation AI - Integration Notes
+=========================================
+The spec says "single HTML file, React via CDN, no build step" but user wants it 
+integrated as a tab in the SAME URL as the existing platform.
+
+Approach: Build as a separate React component (like Collections.jsx) and integrate 
+into the existing sidebar. The API call goes through our Express backend (like all 
+other modules) instead of directly from browser.
+
+Screens to add (5 sidebar items + 1 result screen):
+1. colVDashboard - Vehicle Valuation Dashboard
+2. colVNewVal - New Valuation (3-step wizard)
+3. colVResult - Valuation Result
+4. colVHistory - Valuation History
+5. colVMarket - Market Insights
+(Settings is shared)
+
+Sidebar section: "Vehicle Valuation AI"
+
+Key features:
+- 5 sample valuations pre-loaded
+- 3-step wizard (Vehicle Details, Condition & Documentation, Review & Valuate)
+- AI valuation with fraud detection, LTV calculation, market comparables
+- Valuation certificate (printable)
+- Market Insights (static data - depreciation, LTV guidelines, red flags)
+- Full bilingual EN/AR
+
+Server route: /api/vehicle-valuation
+
+Design: Same as existing platform (red #BE1E2D, white cards, etc.)
+Value indicators: Fair(green), Slightly High(amber), Over-Inflated(red), Under Market(blue)
