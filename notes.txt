@@ -1,0 +1,16 @@
+App.jsx structure:
+- T object: en/ar translations
+- Sidebar sections: sectionRisk (3 nav items), sectionCredit (3 nav items), settings
+- Sidebar nav items map to screens: dashboard, wizard, result, applications, csDashboard, csWizard, csResult, csHistory, settings
+- State: lang, screen, viewResult, viewForm, riskApps (RISK_KEY), csApps (CS_KEY)
+- Helper functions: loadStore, saveStore, riskColor, csScoreColor, eligColor, recColor, computeSamaChecks
+- Components: Sidebar, Dashboard, Wizard, RiskResult, RiskApplications, CsDashboard, CsWizard, CsResult, CsHistory, Settings
+- Layout: flex with Sidebar + content area
+
+Need to add:
+- New section "Sharia Audit" in sidebar with 4 nav items: saDashboard, saNewAudit, saHistory, saStandards
+- New screens: SaDashboard, SaWizard (3-step), SaResult, SaHistory, SaStandards
+- New state: saApps (SA_KEY), saViewResult
+- New translations in T.en.sa and T.ar.sa
+- New server route: /api/sharia-audit
+- Settings screen: shared, already exists
