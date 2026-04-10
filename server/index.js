@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import dotenv from "dotenv";
 import analyzeRouter from "./routes/analyze.js";
+import creditScoreRouter from "./routes/credit-score.js";
 
 dotenv.config();
 
@@ -17,12 +18,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use("/api/analyze", analyzeRouter);
+app.use("/api/credit-score", creditScoreRouter);
 
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    version: "1.0.0",
-    platform: "SME Risk Intelligence — Alpha Pro MENA",
+    version: "2.0.0",
+    platform: "Alpha Pro MENA — SME Risk Intelligence & Credit Scoring Engine",
     timestamp: new Date().toISOString(),
   });
 });
@@ -34,6 +36,6 @@ app.get("*", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`SME Risk Platform running on http://localhost:${PORT}`);
+  console.log(`Alpha Pro MENA Platform running on http://localhost:${PORT}`);
   console.log(`API Key: ${process.env.ANTHROPIC_API_KEY ? "SET" : "MISSING - app will not work"}`);
 });
