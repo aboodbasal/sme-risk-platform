@@ -467,10 +467,71 @@ export default function App() {
   const [riskApps, setRiskApps] = useState(() => loadStore(RISK_KEY));
   const [csApps, setCsApps] = useState(() => loadStore(CS_KEY));
   const [saApps, setSaApps] = useState(() => loadStore(SA_KEY));
+  const [demoMode, setDemoMode] = useState(null); // null | 'risk' | 'credit' | 'sharia'
+  const [demoLoading, setDemoLoading] = useState(null); // which demo is currently loading
 
   useEffect(() => { localStorage.setItem("app_lang", lang); }, [lang]);
   const t = T[lang];
   const isRtl = lang === "ar";
+
+  /* ═══════════════════════════════════════════════════════════════
+     QUICK DEMO FUNCTIONS
+     ═══════════════════════════════════════════════════════════════ */
+  const DEMO_RISK = { companyName: "شركة النور للخدمات اللوجستية", sector: lang === "ar" ? "النقل" : "Transportation", years: "6", employees: "35", revenue: "3600000", financing: "1200000", purpose: "شراء 5 شاحنات توصيل وتوسعة المستودع الرئيسي", cr: "valid", zatca: "compliant", simah: "clean", saudization: "45" };
+  const DEMO_CREDIT = { applicantType: "individual", fullName: "محمد عبدالله الرشيدي", nationalId: "1023456789", nationality: "saudi", city: lang === "ar" ? "الرياض" : "Riyadh", empStatus: "government", employer: "وزارة الصحة", salary: "18500", yearsJob: "7", otherIncome: "0", sector: "", yearsInBiz: "", annualRev: "", numEmployees: "", saudization: "", finAmount: "320000", finPurpose: "شراء سيارة عائلية", finType: "murabaha", tenor: "48", existingDebt: "2200", simahScore: "good", simahRemarks: "clean", zatca: "compliant", crStatus: "valid", absher: "verified", existingCustomer: "no", prevDefaults: "no" };
+  const DEMO_SHARIA_TEXT = `MURABAHA VEHICLE FINANCING AGREEMENT\n\nArticle 1: Tawkelat Finance agrees to purchase the vehicle and sell it to the customer at a total price of SAR 368,000, representing the cost of SAR 320,000 plus a profit margin of SAR 48,000 (15% per annum).\n\nArticle 2: The customer shall pay 48 monthly installments of SAR 7,667 each, commencing 30 days from the date of vehicle delivery.\n\nArticle 3: In case of late payment exceeding 30 days, the customer shall pay an additional charge of 2% per month on the overdue amount, which shall accrue to Tawkelat Finance as additional income.\n\nArticle 4: Ownership of the vehicle shall pass to the customer upon signing of this agreement, subject to Tawkelat Finance maintaining a lien until full payment.\n\nArticle 5: The customer must obtain comprehensive vehicle insurance from a conventional insurance provider approved by Tawkelat Finance.\n\nArticle 6: Tawkelat Finance reserves the right to adjust the profit rate by up to 2% annually based on market conditions.`;
+
+  const runDemoRisk = async () => {
+    setDemoLoading("risk");
+    const form = DEMO_RISK;
+    const rev = Number(form.revenue); const fin = Number(form.financing);
+    const monthlyIncome = rev / 12;
+    const ratioPercent = monthlyIncome > 0 ? ((fin / monthlyIncome) * 100).toFixed(1) : "0.0";
+    const msg = `Company: ${form.companyName}\nSector: Transportation\nYears in Business: ${form.years}\nEmployees: ${form.employees}\nAnnual Revenue: SAR ${Number(form.revenue).toLocaleString()}\nFinancing Requested: SAR ${Number(form.financing).toLocaleString()}\nPurpose: ${form.purpose}\nCommercial Register: ${form.cr}\nZATCA: ${form.zatca}\nSIMAH: ${form.simah}\nSaudization: ${form.saudization}%\nFinancing/Monthly Income Ratio: ${ratioPercent}%`;
+    try {
+      const res = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "API error");
+      const result = data.result;
+      const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), riskScore: result.riskScore, riskLevel: result.riskLevel, recommendation: result.recommendation, formData: form, ...result };
+      setViewResult(appEntry); setViewForm(form); setScreen("result");
+    } catch (e) { alert("Demo error: " + e.message); } finally { setDemoLoading(null); }
+  };
+
+  const runDemoCredit = async () => {
+    setDemoLoading("credit");
+    const form = DEMO_CREDIT;
+    const monthlyIncome = (Number(form.salary) || 0) + (Number(form.otherIncome) || 0);
+    const estMonthlyPayment = Number(form.tenor) > 0 ? (Number(form.finAmount) || 0) / Number(form.tenor) : 0;
+    const totalMonthlyDebt = (Number(form.existingDebt) || 0) + estMonthlyPayment;
+    const ratio = monthlyIncome > 0 ? totalMonthlyDebt / monthlyIncome : 0;
+    let msg = `Credit Scoring Application:\nApplicant Type: ${form.applicantType}\nFull Name: ${form.fullName}\nNational ID / CR: ${form.nationalId}\nNationality: ${form.nationality}\nCity: Riyadh\n`;
+    msg += `Employment Status: ${form.empStatus}\nEmployer: ${form.employer}\nMonthly Salary: SAR ${Number(form.salary).toLocaleString()}\nYears at Current Job: ${form.yearsJob}\nOther Monthly Income: SAR 0\n`;
+    msg += `Financing Amount: SAR ${Number(form.finAmount).toLocaleString()}\nFinancing Purpose: ${form.finPurpose}\nPreferred Structure: Murabaha\nRequested Tenor: ${form.tenor} months\nExisting Monthly Debt: SAR ${Number(form.existingDebt).toLocaleString()}\nTotal Monthly Income: SAR ${Math.round(monthlyIncome).toLocaleString()}\nDebt-to-Income Ratio: ${(ratio * 100).toFixed(1)}%\n`;
+    msg += `SIMAH Score: ${form.simahScore}\nSIMAH Remarks: ${form.simahRemarks}\nZATCA: ${form.zatca}\nCommercial Register: ${form.crStatus}\nAbsher: ${form.absher}\nExisting Tawkelat Customer: ${form.existingCustomer}\nPrevious Defaults: ${form.prevDefaults}`;
+    try {
+      const res = await fetch("/api/credit-score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "API error");
+      const result = data.result;
+      const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), creditScore: result.creditScore, scoreLabel: result.scoreLabel, eligibility: result.eligibility, formData: form, ...result };
+      setViewResult(appEntry); setViewForm(form); setScreen("csResult");
+    } catch (e) { alert("Demo error: " + e.message); } finally { setDemoLoading(null); }
+  };
+
+  const runDemoSharia = async () => {
+    setDemoLoading("sharia");
+    const msg = `Contract Type: Murabaha\nApplicable Standards: AAOIFI Sharia Standard 8, SAMA Islamic Finance Framework\nFinancing Amount: SAR 320,000\nContract Language: english\n\nCONTRACT TEXT:\n${DEMO_SHARIA_TEXT}\n\nPlease perform a complete Sharia compliance audit.`;
+    const form = { auditName: "عقد مرابحة سيارات #2024-089", contractType: lang === "ar" ? "مرابحة" : "Murabaha", contractTypeShort: "MRB", standards: [true, true, false, false], finAmount: "320000", contractLang: "english" };
+    try {
+      const res = await fetch("/api/sharia-audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "API error");
+      const result = data.result;
+      const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), complianceScore: result.complianceScore, complianceStatus: result.complianceStatus, formData: form, ...result };
+      setViewResult(appEntry); setViewForm(form); setScreen("saResult");
+    } catch (e) { alert("Demo error: " + e.message); } finally { setDemoLoading(null); }
+  };
 
   /* Old sidebar removed — using the new unified Sidebar defined below */
 
@@ -496,18 +557,23 @@ export default function App() {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>{t.dashboard.title}</h2>
-          <button onClick={() => setScreen("wizard")} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 18px", fontSize: 13, fontWeight: 600 }}>{t.dashboard.newBtn}</button>
+          <h2 style={{ fontSize: 24, fontWeight: 700 }}>{t.dashboard.title}</h2>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={runDemoRisk} disabled={demoLoading === "risk"} style={{ background: "#1a1a2e", color: "#fff", border: "none", padding: "12px 24px", fontSize: 14, fontWeight: 600, borderRadius: 8, cursor: demoLoading === "risk" ? "wait" : "pointer", opacity: demoLoading === "risk" ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
+              {demoLoading === "risk" ? <span className="spin" style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%" }} /> : "\uD83C\uDFAF"} {demoLoading === "risk" ? "Analyzing..." : "Quick Demo"}
+            </button>
+            <button onClick={() => setScreen("wizard")} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600, borderRadius: 8 }}>{t.dashboard.newBtn}</button>
+          </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 20 }}>
           {statCards.map((c, i) => (
-            <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+            <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
               <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{c.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color ? c.color.text : "#1a1a1a" }}>{c.value}</div>
             </div>
           ))}
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.dashboard.riskDist}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             {[{ label: t.dashboard.low, count: lowCount, color: riskColor("low") }, { label: t.dashboard.medium, count: medCount, color: riskColor("medium") }, { label: t.dashboard.high, count: highCount, color: riskColor("high") }].map((r, i) => (
@@ -519,7 +585,7 @@ export default function App() {
             ))}
           </div>
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.dashboard.recentApps}</div>
           {apps.length === 0 ? <div style={{ textAlign: "center", color: "#888", padding: 32, fontSize: 13 }}>{t.dashboard.empty}</div> : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -573,8 +639,8 @@ export default function App() {
     };
 
     const steps = [t.wizard.step1, t.wizard.step2, t.wizard.step3, t.wizard.step4];
-    const fld = { marginBottom: 14 };
-    const lbl = { display: "block", fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 4 };
+    const fld = { marginBottom: 20 };
+    const lbl = { display: "block", fontSize: 14, fontWeight: 600, color: "#333", marginBottom: 6 };
 
     return (
       <div>
@@ -582,18 +648,18 @@ export default function App() {
           {steps.map((s, i) => (
             <React.Fragment key={i}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 70 }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: step > i + 1 ? "#27500A" : step === i + 1 ? "#BE1E2D" : "#ddd", color: "#fff", fontSize: 12, fontWeight: 700 }}>{step > i + 1 ? "✓" : i + 1}</div>
-                <div style={{ fontSize: 9, marginTop: 4, color: step === i + 1 ? "#BE1E2D" : "#888", textAlign: "center" }}>{s}</div>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: step > i + 1 ? "#27500A" : step === i + 1 ? "#BE1E2D" : "#ddd", color: "#fff", fontSize: 14, fontWeight: 700 }}>{step > i + 1 ? "✓" : i + 1}</div>
+                <div style={{ fontSize: 12, marginTop: 6, color: step === i + 1 ? "#BE1E2D" : "#888", textAlign: "center", fontWeight: step === i + 1 ? 600 : 400 }}>{s}</div>
               </div>
               {i < 3 && <div style={{ flex: 1, height: 2, background: step > i + 1 ? "#27500A" : "#ddd", margin: "0 4px", marginBottom: 18 }} />}
             </React.Fragment>
           ))}
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 24, maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 12, padding: "32px 40px" }}>
           {step === 1 && (<>
             <div style={fld}><label style={lbl}>{t.wizard.companyName}</label><input value={form.companyName} onChange={(e) => up("companyName", e.target.value)} /></div>
             <div style={fld}><label style={lbl}>{t.wizard.sector}</label><select value={form.sector} onChange={(e) => up("sector", e.target.value)}><option value="">{t.wizard.selectSector}</option>{sectorOptions.map((s, i) => <option key={i} value={s}>{s}</option>)}</select></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div style={fld}><label style={lbl}>{t.wizard.years}</label><input type="number" value={form.years} onChange={(e) => up("years", e.target.value)} /></div>
               <div style={fld}><label style={lbl}>{t.wizard.employees}</label><input type="number" value={form.employees} onChange={(e) => up("employees", e.target.value)} /></div>
             </div>
@@ -605,11 +671,11 @@ export default function App() {
             {monthlyIncome > 0 && <div style={{ padding: 10, borderRadius: 6, background: parseFloat(ratioPercent) > 65 ? "#fcebeb" : "#eaf3de", marginTop: 4 }}><span style={{ fontSize: 12, fontWeight: 600, color: parseFloat(ratioPercent) > 65 ? "#501313" : "#27500A" }}>{t.wizard.ratio}: {ratioPercent}%</span>{parseFloat(ratioPercent) > 65 && <div style={{ fontSize: 11, color: "#501313", marginTop: 4 }}>{t.wizard.ratioWarn}</div>}</div>}
           </>)}
           {step === 3 && (<>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div style={fld}><label style={lbl}>{t.wizard.cr}</label><select value={form.cr} onChange={(e) => up("cr", e.target.value)}><option value="valid">{t.wizard.valid}</option><option value="expired">{t.wizard.expired}</option></select></div>
               <div style={fld}><label style={lbl}>{t.wizard.zatca}</label><select value={form.zatca} onChange={(e) => up("zatca", e.target.value)}><option value="compliant">{t.wizard.compliant}</option><option value="non-compliant">{t.wizard.nonCompliant}</option></select></div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div style={fld}><label style={lbl}>{t.wizard.simah}</label><select value={form.simah} onChange={(e) => up("simah", e.target.value)}><option value="clean">{t.wizard.clean}</option><option value="minor">{t.wizard.minorIssues}</option><option value="major">{t.wizard.majorIssues}</option></select></div>
               <div style={fld}><label style={lbl}>{t.wizard.saudization}</label><input type="number" value={form.saudization} onChange={(e) => up("saudization", e.target.value)} min="0" max="100" /></div>
             </div>
@@ -626,8 +692,8 @@ export default function App() {
             {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{error}</div>}
           </>)}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
-            {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "8px 18px", fontSize: 13 }}>{t.wizard.prev}</button> : <div />}
-            {step < 4 ? <button onClick={() => setStep(step + 1)} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 18px", fontSize: 13, fontWeight: 600 }}>{t.wizard.next}</button> : <button onClick={submit} disabled={loading} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 22px", fontSize: 13, fontWeight: 600 }}>{loading ? t.wizard.analyzing : t.wizard.analyzeBtn}</button>}
+            {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "12px 24px", fontSize: 14 }}>{t.wizard.prev}</button> : <div />}
+            {step < 4 ? <button onClick={() => setStep(step + 1)} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600 }}>{t.wizard.next}</button> : <button onClick={submit} disabled={loading} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600 }}>{loading ? t.wizard.analyzing : t.wizard.analyzeBtn}</button>}
           </div>
         </div>
       </div>
@@ -647,29 +713,29 @@ export default function App() {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-          <div><h2 style={{ fontSize: 20, fontWeight: 700 }}>{t.result.title}</h2><div style={{ fontSize: 13, color: "#888", marginTop: 2 }}>{r.formData?.companyName || viewForm?.companyName} — {r.formData?.sector || viewForm?.sector}</div></div>
+          <div><h2 style={{ fontSize: 24, fontWeight: 700 }}>{t.result.title}</h2><div style={{ fontSize: 13, color: "#888", marginTop: 2 }}>{r.formData?.companyName || viewForm?.companyName} — {r.formData?.sector || viewForm?.sector}</div></div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={handleSave} disabled={saved} style={{ background: saved ? "#27500A" : "#BE1E2D", color: "#fff", border: "none", padding: "8px 16px", fontSize: 12, fontWeight: 600 }}>{saved ? t.result.saved : t.result.save}</button>
-            <button onClick={() => setScreen("wizard")} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "8px 16px", fontSize: 12 }}>{t.result.newAnalysis}</button>
+            <button onClick={handleSave} disabled={saved} style={{ background: saved ? "#27500A" : "#BE1E2D", color: "#fff", border: "none", padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{saved ? t.result.saved : t.result.save}</button>
+            <button onClick={() => setScreen("wizard")} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "10px 22px", fontSize: 14 }}>{t.result.newAnalysis}</button>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, textAlign: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.result.riskScore}</div><div style={{ fontSize: 36, fontWeight: 700, color: rc.text }}>{r.riskScore}</div></div>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, textAlign: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.result.riskLevel}</div><span style={{ background: rc.bg, color: rc.text, padding: "4px 14px", borderRadius: 4, fontSize: 14, fontWeight: 700 }}>{r.riskLevel}</span></div>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, textAlign: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.result.recommendation}</div><div style={{ fontSize: 18, fontWeight: 700, color: recColor(r.recommendation) }}>{r.recommendation}</div></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 20 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, textAlign: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.result.riskScore}</div><div style={{ fontSize: 36, fontWeight: 700, color: rc.text }}>{r.riskScore}</div></div>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, textAlign: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.result.riskLevel}</div><span style={{ background: rc.bg, color: rc.text, padding: "4px 14px", borderRadius: 4, fontSize: 14, fontWeight: 700 }}>{r.riskLevel}</span></div>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, textAlign: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.result.recommendation}</div><div style={{ fontSize: 18, fontWeight: 700, color: recColor(r.recommendation) }}>{r.recommendation}</div></div>
         </div>
-        {(r.recommendedFinancingAmount || r.recommendedTenor) && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>{r.recommendedFinancingAmount && <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 14 }}><div style={{ fontSize: 11, color: "#888" }}>{t.result.recAmount}</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>SAR {Number(r.recommendedFinancingAmount).toLocaleString()}</div></div>}{r.recommendedTenor && <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 14 }}><div style={{ fontSize: 11, color: "#888" }}>{t.result.recTenor}</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>{r.recommendedTenor}</div></div>}</div>}
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t.result.summary}</div><div style={{ fontSize: 13, lineHeight: 1.6, color: "#444" }}>{r.summary}</div></div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{t.result.strengths}</div>{(r.strengths || []).map((s, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#27500A" }}>✓ {s}</div>)}</div>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#501313" }}>{t.result.risks}</div>{(r.risks || []).map((s, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#501313" }}>! {s}</div>)}</div>
+        {(r.recommendedFinancingAmount || r.recommendedTenor) && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>{r.recommendedFinancingAmount && <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 18 }}><div style={{ fontSize: 11, color: "#888" }}>{t.result.recAmount}</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>SAR {Number(r.recommendedFinancingAmount).toLocaleString()}</div></div>}{r.recommendedTenor && <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 18 }}><div style={{ fontSize: 11, color: "#888" }}>{t.result.recTenor}</div><div style={{ fontSize: 16, fontWeight: 700, marginTop: 4 }}>{r.recommendedTenor}</div></div>}</div>}
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t.result.summary}</div><div style={{ fontSize: 13, lineHeight: 1.6, color: "#444" }}>{r.summary}</div></div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{t.result.strengths}</div>{(r.strengths || []).map((s, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#27500A" }}>✓ {s}</div>)}</div>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#501313" }}>{t.result.risks}</div>{(r.risks || []).map((s, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#501313" }}>! {s}</div>)}</div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          <div style={{ background: "#eaf3de", border: "0.5px solid #d5e8c0", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{t.result.sharia}</div><div style={{ fontSize: 12, lineHeight: 1.5, color: "#27500A" }}>{r.shariaNote}</div></div>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#633806" }}>{t.result.samaFlags}</div>{(r.samaFlags || []).map((f, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#633806" }}>⚑ {f}</div>)}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div style={{ background: "#eaf3de", border: "0.5px solid #d5e8c0", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{t.result.sharia}</div><div style={{ fontSize: 12, lineHeight: 1.5, color: "#27500A" }}>{r.shariaNote}</div></div>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#633806" }}>{t.result.samaFlags}</div>{(r.samaFlags || []).map((f, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#633806" }}>⚑ {f}</div>)}</div>
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{t.result.samaChecks}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>{chkLabels.map((l, i) => <div key={i} style={{ padding: "6px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, textAlign: "center", background: samaChks[i] ? "#eaf3de" : "#fcebeb", color: samaChks[i] ? "#27500A" : "#501313" }}>{samaChks[i] ? "✓" : "✗"} {l}</div>)}</div></div>
-        {r.conditions && r.conditions.length > 0 && <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t.result.conditions}</div>{r.conditions.map((c, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#444" }}>{i + 1}. {c}</div>)}</div>}
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{t.result.samaChecks}</div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>{chkLabels.map((l, i) => <div key={i} style={{ padding: "6px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, textAlign: "center", background: samaChks[i] ? "#eaf3de" : "#fcebeb", color: samaChks[i] ? "#27500A" : "#501313" }}>{samaChks[i] ? "✓" : "✗"} {l}</div>)}</div></div>
+        {r.conditions && r.conditions.length > 0 && <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t.result.conditions}</div>{r.conditions.map((c, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#444" }}>{i + 1}. {c}</div>)}</div>}
       </div>
     );
   };
@@ -687,12 +753,12 @@ export default function App() {
     });
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{t.apps.title}</h2>
-        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{t.apps.title}</h2>
+        <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
           <input placeholder={t.apps.search} value={search} onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 260 }} />
           <select value={filter} onChange={(e) => setFilter(e.target.value)} style={{ maxWidth: 160 }}><option value="all">{t.apps.filterAll}</option><option value="low">{t.apps.filterLow}</option><option value="medium">{t.apps.filterMedium}</option><option value="high">{t.apps.filterHigh}</option></select>
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
           {filtered.length === 0 ? <div style={{ textAlign: "center", color: "#888", padding: 32, fontSize: 13 }}>{t.apps.empty}</div> : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead><tr style={{ borderBottom: "1px solid #eee" }}>{[t.apps.date, t.apps.company, t.apps.sector, t.apps.score, t.apps.level, t.apps.decision, ""].map((h, i) => <th key={i} style={{ textAlign: isRtl ? "right" : "left", padding: "8px 6px", fontWeight: 600, fontSize: 11, color: "#888" }}>{h}</th>)}</tr></thead>
@@ -730,18 +796,23 @@ export default function App() {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>{t.cs.dashTitle}</h2>
-          <button onClick={() => setScreen("csWizard")} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 18px", fontSize: 13, fontWeight: 600 }}>{t.cs.newAppBtn}</button>
+          <h2 style={{ fontSize: 24, fontWeight: 700 }}>{t.cs.dashTitle}</h2>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={runDemoCredit} disabled={demoLoading === "credit"} style={{ background: "#1a1a2e", color: "#fff", border: "none", padding: "12px 24px", fontSize: 14, fontWeight: 600, borderRadius: 8, cursor: demoLoading === "credit" ? "wait" : "pointer", opacity: demoLoading === "credit" ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
+              {demoLoading === "credit" ? <span className="spin" style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%" }} /> : "\uD83C\uDFAF"} {demoLoading === "credit" ? "Scoring..." : "Quick Demo"}
+            </button>
+            <button onClick={() => setScreen("csWizard")} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600, borderRadius: 8 }}>{t.cs.newAppBtn}</button>
+          </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 20 }}>
           {[{ label: t.cs.totalApps, value: total }, { label: t.cs.avgScore, value: avgScore, color: csScoreColor(avgScore) }, { label: t.cs.approvalRate, value: `${approvalRate}%` }, { label: t.cs.totalFinancing, value: `SAR ${totalFin.toLocaleString()}` }].map((c, i) => (
-            <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+            <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
               <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{c.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color ? c.color.text : "#1a1a1a", background: c.color ? c.color.bg : "transparent", display: "inline-block", padding: c.color ? "2px 8px" : 0, borderRadius: 4 }}>{c.value}</div>
             </div>
           ))}
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.cs.scoreDist}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
             {[{ label: t.cs.excellent + " (80-100)", count: excCount, color: csScoreColor(90) }, { label: t.cs.good + " (60-79)", count: goodCount, color: csScoreColor(70) }, { label: t.cs.fair + " (40-59)", count: fairCount, color: csScoreColor(50) }, { label: t.cs.poor + " (0-39)", count: poorCount, color: csScoreColor(20) }].map((r, i) => (
@@ -753,7 +824,7 @@ export default function App() {
             ))}
           </div>
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.cs.recentApps}</div>
           {apps.length === 0 ? <div style={{ textAlign: "center", color: "#888", padding: 32, fontSize: 13 }}>{t.cs.empty}</div> : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -825,27 +896,27 @@ export default function App() {
     };
 
     const steps = [t.cs.step1, t.cs.step2, t.cs.step3, t.cs.step4, t.cs.step5];
-    const fld = { marginBottom: 14 };
-    const lbl = { display: "block", fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 4 };
+    const fld = { marginBottom: 20 };
+    const lbl = { display: "block", fontSize: 14, fontWeight: 600, color: "#333", marginBottom: 6 };
 
     return (
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: 28 }}>
-          {steps.map((s, i) => (<React.Fragment key={i}><div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 60 }}><div style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: step > i + 1 ? "#27500A" : step === i + 1 ? "#BE1E2D" : "#ddd", color: "#fff", fontSize: 12, fontWeight: 700 }}>{step > i + 1 ? "✓" : i + 1}</div><div style={{ fontSize: 9, marginTop: 4, color: step === i + 1 ? "#BE1E2D" : "#888", textAlign: "center" }}>{s}</div></div>{i < 4 && <div style={{ flex: 1, height: 2, background: step > i + 1 ? "#27500A" : "#ddd", margin: "0 2px", marginBottom: 18 }} />}</React.Fragment>))}
+          {steps.map((s, i) => (<React.Fragment key={i}><div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 60 }}><div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: step > i + 1 ? "#27500A" : step === i + 1 ? "#BE1E2D" : "#ddd", color: "#fff", fontSize: 14, fontWeight: 700 }}>{step > i + 1 ? "✓" : i + 1}</div><div style={{ fontSize: 12, marginTop: 6, color: step === i + 1 ? "#BE1E2D" : "#888", textAlign: "center", fontWeight: step === i + 1 ? 600 : 400 }}>{s}</div></div>{i < 4 && <div style={{ flex: 1, height: 2, background: step > i + 1 ? "#27500A" : "#ddd", margin: "0 2px", marginBottom: 18 }} />}</React.Fragment>))}
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 24, maxWidth: 580, margin: "0 auto" }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 12, padding: "32px 40px" }}>
           {step === 1 && (<>
             <div style={fld}><label style={lbl}>{t.cs.applicantType}</label><div style={{ display: "flex", gap: 8 }}>{["individual", "sme"].map((tp) => (<button key={tp} onClick={() => up("applicantType", tp)} style={{ flex: 1, padding: "8px 0", border: form.applicantType === tp ? "none" : "0.5px solid #d0d0d0", background: form.applicantType === tp ? "#BE1E2D" : "#fff", color: form.applicantType === tp ? "#fff" : "#1a1a1a", fontSize: 13, fontWeight: 600 }}>{tp === "individual" ? t.cs.individual : t.cs.sme}</button>))}</div></div>
             <div style={fld}><label style={lbl}>{t.cs.fullName}</label><input value={form.fullName} onChange={(e) => up("fullName", e.target.value)} /></div>
             <div style={fld}><label style={lbl}>{t.cs.nationalId}</label><input value={form.nationalId} onChange={(e) => up("nationalId", e.target.value)} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div style={fld}><label style={lbl}>{t.cs.nationality}</label><select value={form.nationality} onChange={(e) => up("nationality", e.target.value)}><option value="saudi">{t.cs.saudi}</option><option value="non-saudi">{t.cs.nonSaudi}</option></select></div>
               <div style={fld}><label style={lbl}>{t.cs.city}</label><select value={form.city} onChange={(e) => up("city", e.target.value)}><option value="">{t.cs.selectCity}</option>{cities.map((c, i) => <option key={i} value={c}>{c}</option>)}</select></div>
             </div>
           </>)}
-          {step === 2 && (<>{isInd ? (<><div style={fld}><label style={lbl}>{t.cs.empStatus}</label><select value={form.empStatus} onChange={(e) => up("empStatus", e.target.value)}>{[["government", t.cs.government], ["private", t.cs.privateSector], ["self", t.cs.selfEmployed], ["retired", t.cs.retired], ["unemployed", t.cs.unemployed]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={fld}><label style={lbl}>{t.cs.employer}</label><input value={form.employer} onChange={(e) => up("employer", e.target.value)} /></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><div style={fld}><label style={lbl}>{t.cs.salary}</label><input type="number" value={form.salary} onChange={(e) => up("salary", e.target.value)} /></div><div style={fld}><label style={lbl}>{t.cs.yearsJob}</label><input type="number" value={form.yearsJob} onChange={(e) => up("yearsJob", e.target.value)} /></div></div><div style={fld}><label style={lbl}>{t.cs.otherIncome}</label><input type="number" value={form.otherIncome} onChange={(e) => up("otherIncome", e.target.value)} /></div></>) : (<><div style={fld}><label style={lbl}>{t.cs.sector}</label><select value={form.sector} onChange={(e) => up("sector", e.target.value)}><option value="">{t.cs.selectSector}</option>{sectorOptions.map((s, i) => <option key={i} value={s}>{s}</option>)}</select></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><div style={fld}><label style={lbl}>{t.cs.yearsInBiz}</label><input type="number" value={form.yearsInBiz} onChange={(e) => up("yearsInBiz", e.target.value)} /></div><div style={fld}><label style={lbl}>{t.cs.annualRev}</label><input type="number" value={form.annualRev} onChange={(e) => up("annualRev", e.target.value)} /></div></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><div style={fld}><label style={lbl}>{t.cs.numEmployees}</label><input type="number" value={form.numEmployees} onChange={(e) => up("numEmployees", e.target.value)} /></div><div style={fld}><label style={lbl}>{t.cs.saudization}</label><input type="number" value={form.saudization} onChange={(e) => up("saudization", e.target.value)} min="0" max="100" /></div></div></>)}</>)}
-          {step === 3 && (<><div style={fld}><label style={lbl}>{t.cs.finAmount}</label><input type="number" value={form.finAmount} onChange={(e) => up("finAmount", e.target.value)} /></div><div style={fld}><label style={lbl}>{t.cs.finPurpose}</label><input value={form.finPurpose} onChange={(e) => up("finPurpose", e.target.value)} /></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><div style={fld}><label style={lbl}>{t.cs.finType}</label><select value={form.finType} onChange={(e) => up("finType", e.target.value)}>{[["murabaha", t.cs.murabaha], ["ijarah", t.cs.ijarah], ["tawarruq", t.cs.tawarruq], ["ai", t.cs.aiDecide]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={fld}><label style={lbl}>{t.cs.tenor}</label><select value={form.tenor} onChange={(e) => up("tenor", e.target.value)}>{["12","24","36","48","60"].map((m) => <option key={m} value={m}>{m} {t.cs.months}</option>)}</select></div></div><div style={fld}><label style={lbl}>{t.cs.existingDebt}</label><input type="number" value={form.existingDebt} onChange={(e) => up("existingDebt", e.target.value)} /></div>{monthlyIncome > 0 && <div style={{ padding: 12, borderRadius: 6, background: ratio > 0.65 ? "#fcebeb" : "#eaf3de", marginTop: 8 }}><div style={{ fontSize: 12, fontWeight: 600, color: ratio > 0.65 ? "#501313" : "#27500A" }}>{t.cs.chkRatio}: {(ratio * 100).toFixed(1)}%</div></div>}</>)}
-          {step === 4 && (<><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><div style={fld}><label style={lbl}>{t.cs.simahScore}</label><select value={form.simahScore} onChange={(e) => up("simahScore", e.target.value)}>{[["excellent", t.cs.simahExcellent], ["good", t.cs.simahGood], ["fair", t.cs.simahFair], ["poor", t.cs.simahPoor], ["na", t.cs.simahNA]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={fld}><label style={lbl}>{t.cs.simahRemarks}</label><select value={form.simahRemarks} onChange={(e) => up("simahRemarks", e.target.value)}>{[["clean", t.cs.clean], ["minor", t.cs.minorIssues], ["major", t.cs.majorIssues], ["defaulted", t.cs.defaulted]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><div style={fld}><label style={lbl}>{t.cs.zatca}</label><select value={form.zatca} onChange={(e) => up("zatca", e.target.value)}>{[["compliant", t.cs.compliant], ["non-compliant", t.cs.nonCompliant], ["na", t.cs.na]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={fld}><label style={lbl}>{t.cs.crStatus}</label><select value={form.crStatus} onChange={(e) => up("crStatus", e.target.value)}>{[["valid", t.cs.valid], ["expired", t.cs.expired], ["na", t.cs.na]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>{isInd && <div style={fld}><label style={lbl}>{t.cs.absher}</label><select value={form.absher} onChange={(e) => up("absher", e.target.value)}>{[["verified", t.cs.verified], ["not-verified", t.cs.notVerified]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}<div style={fld}><label style={lbl}>{t.cs.existingCustomer}</label><select value={form.existingCustomer} onChange={(e) => up("existingCustomer", e.target.value)}>{[["yes", t.cs.yes], ["no", t.cs.no]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div></div><div style={fld}><label style={lbl}>{t.cs.prevDefaults}</label><select value={form.prevDefaults} onChange={(e) => up("prevDefaults", e.target.value)}>{[["no", t.cs.noDefaults], ["minor", t.cs.minorDefaults], ["major", t.cs.majorDefaults]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div></>)}
+          {step === 2 && (<>{isInd ? (<><div style={fld}><label style={lbl}>{t.cs.empStatus}</label><select value={form.empStatus} onChange={(e) => up("empStatus", e.target.value)}>{[["government", t.cs.government], ["private", t.cs.privateSector], ["self", t.cs.selfEmployed], ["retired", t.cs.retired], ["unemployed", t.cs.unemployed]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={fld}><label style={lbl}>{t.cs.employer}</label><input value={form.employer} onChange={(e) => up("employer", e.target.value)} /></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><div style={fld}><label style={lbl}>{t.cs.salary}</label><input type="number" value={form.salary} onChange={(e) => up("salary", e.target.value)} /></div><div style={fld}><label style={lbl}>{t.cs.yearsJob}</label><input type="number" value={form.yearsJob} onChange={(e) => up("yearsJob", e.target.value)} /></div></div><div style={fld}><label style={lbl}>{t.cs.otherIncome}</label><input type="number" value={form.otherIncome} onChange={(e) => up("otherIncome", e.target.value)} /></div></>) : (<><div style={fld}><label style={lbl}>{t.cs.sector}</label><select value={form.sector} onChange={(e) => up("sector", e.target.value)}><option value="">{t.cs.selectSector}</option>{sectorOptions.map((s, i) => <option key={i} value={s}>{s}</option>)}</select></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><div style={fld}><label style={lbl}>{t.cs.yearsInBiz}</label><input type="number" value={form.yearsInBiz} onChange={(e) => up("yearsInBiz", e.target.value)} /></div><div style={fld}><label style={lbl}>{t.cs.annualRev}</label><input type="number" value={form.annualRev} onChange={(e) => up("annualRev", e.target.value)} /></div></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><div style={fld}><label style={lbl}>{t.cs.numEmployees}</label><input type="number" value={form.numEmployees} onChange={(e) => up("numEmployees", e.target.value)} /></div><div style={fld}><label style={lbl}>{t.cs.saudization}</label><input type="number" value={form.saudization} onChange={(e) => up("saudization", e.target.value)} min="0" max="100" /></div></div></>)}</>)}
+          {step === 3 && (<><div style={fld}><label style={lbl}>{t.cs.finAmount}</label><input type="number" value={form.finAmount} onChange={(e) => up("finAmount", e.target.value)} /></div><div style={fld}><label style={lbl}>{t.cs.finPurpose}</label><input value={form.finPurpose} onChange={(e) => up("finPurpose", e.target.value)} /></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><div style={fld}><label style={lbl}>{t.cs.finType}</label><select value={form.finType} onChange={(e) => up("finType", e.target.value)}>{[["murabaha", t.cs.murabaha], ["ijarah", t.cs.ijarah], ["tawarruq", t.cs.tawarruq], ["ai", t.cs.aiDecide]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={fld}><label style={lbl}>{t.cs.tenor}</label><select value={form.tenor} onChange={(e) => up("tenor", e.target.value)}>{["12","24","36","48","60"].map((m) => <option key={m} value={m}>{m} {t.cs.months}</option>)}</select></div></div><div style={fld}><label style={lbl}>{t.cs.existingDebt}</label><input type="number" value={form.existingDebt} onChange={(e) => up("existingDebt", e.target.value)} /></div>{monthlyIncome > 0 && <div style={{ padding: 12, borderRadius: 6, background: ratio > 0.65 ? "#fcebeb" : "#eaf3de", marginTop: 8 }}><div style={{ fontSize: 12, fontWeight: 600, color: ratio > 0.65 ? "#501313" : "#27500A" }}>{t.cs.chkRatio}: {(ratio * 100).toFixed(1)}%</div></div>}</>)}
+          {step === 4 && (<><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><div style={fld}><label style={lbl}>{t.cs.simahScore}</label><select value={form.simahScore} onChange={(e) => up("simahScore", e.target.value)}>{[["excellent", t.cs.simahExcellent], ["good", t.cs.simahGood], ["fair", t.cs.simahFair], ["poor", t.cs.simahPoor], ["na", t.cs.simahNA]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={fld}><label style={lbl}>{t.cs.simahRemarks}</label><select value={form.simahRemarks} onChange={(e) => up("simahRemarks", e.target.value)}>{[["clean", t.cs.clean], ["minor", t.cs.minorIssues], ["major", t.cs.majorIssues], ["defaulted", t.cs.defaulted]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}><div style={fld}><label style={lbl}>{t.cs.zatca}</label><select value={form.zatca} onChange={(e) => up("zatca", e.target.value)}>{[["compliant", t.cs.compliant], ["non-compliant", t.cs.nonCompliant], ["na", t.cs.na]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div><div style={fld}><label style={lbl}>{t.cs.crStatus}</label><select value={form.crStatus} onChange={(e) => up("crStatus", e.target.value)}>{[["valid", t.cs.valid], ["expired", t.cs.expired], ["na", t.cs.na]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div></div><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>{isInd && <div style={fld}><label style={lbl}>{t.cs.absher}</label><select value={form.absher} onChange={(e) => up("absher", e.target.value)}>{[["verified", t.cs.verified], ["not-verified", t.cs.notVerified]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>}<div style={fld}><label style={lbl}>{t.cs.existingCustomer}</label><select value={form.existingCustomer} onChange={(e) => up("existingCustomer", e.target.value)}>{[["yes", t.cs.yes], ["no", t.cs.no]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div></div><div style={fld}><label style={lbl}>{t.cs.prevDefaults}</label><select value={form.prevDefaults} onChange={(e) => up("prevDefaults", e.target.value)}>{[["no", t.cs.noDefaults], ["minor", t.cs.minorDefaults], ["major", t.cs.majorDefaults]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div></>)}
           {step === 5 && (<>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t.cs.reviewSummary}</div>
             {[[t.cs.applicantType, isInd ? t.cs.individual : t.cs.sme],[t.cs.fullName, form.fullName],[t.cs.nationalId, form.nationalId],[t.cs.nationality, form.nationality === "saudi" ? t.cs.saudi : t.cs.nonSaudi],[t.cs.city, form.city],...(isInd ? [[t.cs.empStatus, form.empStatus],[t.cs.salary, `SAR ${Number(form.salary).toLocaleString()}`],[t.cs.yearsJob, form.yearsJob]] : [[t.cs.sector, form.sector],[t.cs.annualRev, `SAR ${Number(form.annualRev).toLocaleString()}`],[t.cs.saudization, `${form.saudization}%`]]),[t.cs.finAmount, `SAR ${Number(form.finAmount).toLocaleString()}`],[t.cs.tenor, `${form.tenor} ${t.cs.months}`],[t.cs.simahScore, form.simahScore],[t.cs.prevDefaults, form.prevDefaults]].map(([k, v], i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f0f0f0", fontSize: 13 }}><span style={{ color: "#888" }}>{k}</span><span style={{ fontWeight: 600 }}>{v || "—"}</span></div>)}
@@ -856,8 +927,8 @@ export default function App() {
             {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{error}</div>}
           </>)}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
-            {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "8px 18px", fontSize: 13 }}>{t.cs.prev}</button> : <div />}
-            {step < 5 ? <button onClick={() => setStep(step + 1)} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 18px", fontSize: 13, fontWeight: 600 }}>{t.cs.next}</button> : <button onClick={submit} disabled={loading} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 22px", fontSize: 13, fontWeight: 600 }}>{loading ? t.cs.analyzing : t.cs.analyzeBtn}</button>}
+            {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "12px 24px", fontSize: 14 }}>{t.cs.prev}</button> : <div />}
+            {step < 5 ? <button onClick={() => setStep(step + 1)} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600 }}>{t.cs.next}</button> : <button onClick={submit} disabled={loading} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600 }}>{loading ? t.cs.analyzing : t.cs.analyzeBtn}</button>}
           </div>
         </div>
       </div>
@@ -878,34 +949,34 @@ export default function App() {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-          <div><h2 style={{ fontSize: 20, fontWeight: 700 }}>{t.cs.reportTitle}</h2><div style={{ fontSize: 13, color: "#888", marginTop: 2 }}>{r.formData?.fullName} — <span style={{ background: "#f0f0f4", padding: "2px 8px", borderRadius: 4, fontSize: 11 }}>{r.formData?.applicantType === "individual" ? t.cs.individual : t.cs.sme}</span></div></div>
-          <div style={{ display: "flex", gap: 8 }}><button onClick={handleSave} disabled={saved} style={{ background: saved ? "#27500A" : "#BE1E2D", color: "#fff", border: "none", padding: "8px 16px", fontSize: 12, fontWeight: 600 }}>{saved ? t.cs.saved : t.cs.save}</button><button onClick={() => setScreen("csWizard")} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "8px 16px", fontSize: 12 }}>{t.cs.newApp}</button></div>
+          <div><h2 style={{ fontSize: 24, fontWeight: 700 }}>{t.cs.reportTitle}</h2><div style={{ fontSize: 13, color: "#888", marginTop: 2 }}>{r.formData?.fullName} — <span style={{ background: "#f0f0f4", padding: "2px 8px", borderRadius: 4, fontSize: 11 }}>{r.formData?.applicantType === "individual" ? t.cs.individual : t.cs.sme}</span></div></div>
+          <div style={{ display: "flex", gap: 8 }}><button onClick={handleSave} disabled={saved} style={{ background: saved ? "#27500A" : "#BE1E2D", color: "#fff", border: "none", padding: "10px 22px", fontSize: 14, fontWeight: 600 }}>{saved ? t.cs.saved : t.cs.save}</button><button onClick={() => setScreen("csWizard")} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "10px 22px", fontSize: 14 }}>{t.cs.newApp}</button></div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, textAlign: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.cs.creditScore}</div><div style={{ fontSize: 40, fontWeight: 700, color: sc.text }}>{r.creditScore}</div><div style={{ fontSize: 11, color: sc.text, marginTop: 2 }}>{r.scoreLabel}</div></div>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.cs.eligibilityLabel}</div><div style={{ fontSize: 20, fontWeight: 700, color: eligColor(r.eligibility) }}>{r.eligibility}</div></div>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.cs.confidence}</div><div style={{ fontSize: 16, fontWeight: 700 }}>{r.confidenceLevel || "—"}</div></div>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.cs.recStructure}</div><div style={{ fontSize: 16, fontWeight: 700, color: "#BE1E2D" }}>{r.recommendedStructure || "—"}</div></div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, textAlign: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.cs.creditScore}</div><div style={{ fontSize: 40, fontWeight: 700, color: sc.text }}>{r.creditScore}</div><div style={{ fontSize: 11, color: sc.text, marginTop: 2 }}>{r.scoreLabel}</div></div>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.cs.eligibilityLabel}</div><div style={{ fontSize: 24, fontWeight: 700, color: eligColor(r.eligibility) }}>{r.eligibility}</div></div>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.cs.confidence}</div><div style={{ fontSize: 16, fontWeight: 700 }}>{r.confidenceLevel || "—"}</div></div>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{t.cs.recStructure}</div><div style={{ fontSize: 16, fontWeight: 700, color: "#BE1E2D" }}>{r.recommendedStructure || "—"}</div></div>
         </div>
         {(r.eligibility || "").toLowerCase() !== "rejected" && (r.eligibility || "").toLowerCase() !== "مرفوض" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 20 }}>
             {[[t.cs.recAmount, r.recommendedAmount ? `SAR ${Number(r.recommendedAmount).toLocaleString()}` : "—"], [t.cs.recTenor, r.recommendedTenor || "—"], [t.cs.estPayment, r.recommendedAmount && r.recommendedTenor ? `SAR ${Math.round(Number(r.recommendedAmount) / parseInt(r.recommendedTenor)).toLocaleString()}` : "—"], [t.cs.profitRate, r.estimatedProfitRate || "—"]].map(([lbl, val], i) => (
-              <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 14 }}><div style={{ fontSize: 11, color: "#888" }}>{lbl}</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>{val}</div></div>
+              <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 18 }}><div style={{ fontSize: 11, color: "#888" }}>{lbl}</div><div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>{val}</div></div>
             ))}
           </div>
         )}
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t.result.summary}</div><div style={{ fontSize: 13, lineHeight: 1.6, color: "#444" }}>{r.summary}</div></div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{t.cs.scoreBreakdown}</div>{bars.map((b, i) => (<div key={i} style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span>{b.label}</span><span style={{ fontWeight: 600 }}>{b.value}/{b.max}</span></div><div style={{ height: 8, background: "#f0f0f4", borderRadius: 4 }}><div style={{ height: 8, borderRadius: 4, background: b.value / b.max >= 0.7 ? "#27500A" : b.value / b.max >= 0.4 ? "#c89000" : "#BE1E2D", width: `${(b.value / b.max) * 100}%`, transition: "width 0.3s" }} /></div></div>))}</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{t.cs.positiveFactors}</div>{(r.positiveFactors || []).map((s, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#27500A" }}>✓ {s}</div>)}</div>
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#501313" }}>{t.cs.riskFlags}</div>{(r.riskFlags || []).map((s, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#501313" }}>! {s}</div>)}</div>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t.result.summary}</div><div style={{ fontSize: 13, lineHeight: 1.6, color: "#444" }}>{r.summary}</div></div>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{t.cs.scoreBreakdown}</div>{bars.map((b, i) => (<div key={i} style={{ marginBottom: 10 }}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span>{b.label}</span><span style={{ fontWeight: 600 }}>{b.value}/{b.max}</span></div><div style={{ height: 8, background: "#f0f0f4", borderRadius: 4 }}><div style={{ height: 8, borderRadius: 4, background: b.value / b.max >= 0.7 ? "#27500A" : b.value / b.max >= 0.4 ? "#c89000" : "#BE1E2D", width: `${(b.value / b.max) * 100}%`, transition: "width 0.3s" }} /></div></div>))}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{t.cs.positiveFactors}</div>{(r.positiveFactors || []).map((s, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#27500A" }}>✓ {s}</div>)}</div>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#501313" }}>{t.cs.riskFlags}</div>{(r.riskFlags || []).map((s, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#501313" }}>! {s}</div>)}</div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-          <div style={{ background: "#eaf3de", border: "0.5px solid #d5e8c0", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{t.cs.shariaNote}</div><div style={{ fontSize: 12, lineHeight: 1.5, color: "#27500A" }}>{r.shariaNote}</div>{r.structureReason && <div style={{ fontSize: 11, marginTop: 6, color: "#3d7a0a", fontStyle: "italic" }}>{r.structureReason}</div>}</div>
-          <div style={{ background: "#f9f9fb", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#633806" }}>{t.cs.samaFlags}</div>{(r.samaFlags || []).map((f, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#633806" }}>⚑ {f}</div>)}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div style={{ background: "#eaf3de", border: "0.5px solid #d5e8c0", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{t.cs.shariaNote}</div><div style={{ fontSize: 12, lineHeight: 1.5, color: "#27500A" }}>{r.shariaNote}</div>{r.structureReason && <div style={{ fontSize: 11, marginTop: 6, color: "#3d7a0a", fontStyle: "italic" }}>{r.structureReason}</div>}</div>
+          <div style={{ background: "#f9f9fb", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#633806" }}>{t.cs.samaFlags}</div>{(r.samaFlags || []).map((f, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#633806" }}>⚑ {f}</div>)}</div>
         </div>
-        {r.conditions && r.conditions.length > 0 && <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t.cs.conditions}</div>{r.conditions.map((c, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#444" }}>{i + 1}. {c}</div>)}</div>}
-        {r.rejectionReasons && r.rejectionReasons.length > 0 && <div style={{ background: "#fcebeb", border: "0.5px solid #f0c0c0", borderRadius: 8, padding: 16, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#501313" }}>{t.cs.rejectionReasons}</div>{r.rejectionReasons.map((c, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#501313" }}>{i + 1}. {c}</div>)}</div>}
+        {r.conditions && r.conditions.length > 0 && <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t.cs.conditions}</div>{r.conditions.map((c, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#444" }}>{i + 1}. {c}</div>)}</div>}
+        {r.rejectionReasons && r.rejectionReasons.length > 0 && <div style={{ background: "#fcebeb", border: "0.5px solid #f0c0c0", borderRadius: 10, padding: 20, marginBottom: 16 }}><div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#501313" }}>{t.cs.rejectionReasons}</div>{r.rejectionReasons.map((c, i) => <div key={i} style={{ fontSize: 12, padding: "4px 0", color: "#501313" }}>{i + 1}. {c}</div>)}</div>}
         <div style={{ fontSize: 10, color: "#999", marginTop: 16, lineHeight: 1.5, textAlign: "center" }}>{t.cs.disclaimer}</div>
       </div>
     );
@@ -927,13 +998,13 @@ export default function App() {
     });
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{t.cs.histTitle}</h2>
-        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{t.cs.histTitle}</h2>
+        <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
           <input placeholder={t.cs.search} value={search} onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 240 }} />
           <select value={filterElig} onChange={(e) => setFilterElig(e.target.value)} style={{ maxWidth: 150 }}><option value="all">{t.cs.filterAll}</option><option value="approved">{t.cs.filterApproved}</option><option value="conditional">{t.cs.filterConditional}</option><option value="rejected">{t.cs.filterRejected}</option></select>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={{ maxWidth: 150 }}><option value="all">{t.cs.filterAllType}</option><option value="individual">{t.cs.filterIndividual}</option><option value="sme">{t.cs.filterSME}</option></select>
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
           {filtered.length === 0 ? <div style={{ textAlign: "center", color: "#888", padding: 32, fontSize: 13 }}>{t.cs.histEmpty}</div> : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead><tr style={{ borderBottom: "1px solid #eee" }}>{[t.cs.date, t.cs.name, t.cs.type, t.cs.score, t.cs.eligibility, "", ""].map((h, i) => <th key={i} style={{ textAlign: isRtl ? "right" : "left", padding: "8px 6px", fontWeight: 600, fontSize: 11, color: "#888" }}>{h}</th>)}</tr></thead>
@@ -968,18 +1039,23 @@ export default function App() {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>{t.sa.dashTitle}</h2>
-          <button onClick={() => setScreen("saNewAudit")} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 18px", fontSize: 13, fontWeight: 600 }}>{t.sa.newAuditBtn}</button>
+          <h2 style={{ fontSize: 24, fontWeight: 700 }}>{t.sa.dashTitle}</h2>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={runDemoSharia} disabled={demoLoading === "sharia"} style={{ background: "#1a1a2e", color: "#fff", border: "none", padding: "12px 24px", fontSize: 14, fontWeight: 600, borderRadius: 8, cursor: demoLoading === "sharia" ? "wait" : "pointer", opacity: demoLoading === "sharia" ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
+              {demoLoading === "sharia" ? <span className="spin" style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%" }} /> : "\uD83C\uDFAF"} {demoLoading === "sharia" ? "Auditing..." : "Quick Demo"}
+            </button>
+            <button onClick={() => setScreen("saNewAudit")} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600, borderRadius: 8 }}>{t.sa.newAuditBtn}</button>
+          </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 20 }}>
           {[{ label: t.sa.totalAudits, value: total }, { label: t.sa.avgScore, value: avgScore, color: saScoreColor(avgScore) }, { label: t.sa.fullyCompliant, value: fullCount }, { label: t.sa.violationsFound, value: totalViolations, color: totalViolations > 0 ? { bg: "#fcebeb", text: "#501313" } : { bg: "#eaf3de", text: "#27500A" } }].map((c, i) => (
-            <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+            <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
               <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>{c.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color ? c.color.text : "#1a1a1a", background: c.color ? c.color.bg : "transparent", display: "inline-block", padding: c.color ? "2px 8px" : 0, borderRadius: 4 }}>{c.value}</div>
             </div>
           ))}
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.sa.compOverview}</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
             {[{ label: t.sa.catFull, count: fullCount, color: saScoreColor(90) }, { label: t.sa.catMinor, count: minorCount, color: saScoreColor(70) }, { label: t.sa.catMajor, count: majorCount, color: saScoreColor(30) }].map((r, i) => (
@@ -991,7 +1067,7 @@ export default function App() {
             ))}
           </div>
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.sa.recentAudits}</div>
           {apps.length === 0 ? <div style={{ textAlign: "center", color: "#888", padding: 32, fontSize: 13 }}>{t.sa.empty}</div> : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -1063,15 +1139,15 @@ export default function App() {
     };
 
     const steps = [t.sa.step1, t.sa.step2, t.sa.step3];
-    const fld = { marginBottom: 14 };
-    const lbl = { display: "block", fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 4 };
+    const fld = { marginBottom: 20 };
+    const lbl = { display: "block", fontSize: 14, fontWeight: 600, color: "#333", marginBottom: 6 };
 
     return (
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: 28 }}>
-          {steps.map((s, i) => (<React.Fragment key={i}><div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 80 }}><div style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: step > i + 1 ? "#27500A" : step === i + 1 ? "#BE1E2D" : "#ddd", color: "#fff", fontSize: 12, fontWeight: 700 }}>{step > i + 1 ? "✓" : i + 1}</div><div style={{ fontSize: 9, marginTop: 4, color: step === i + 1 ? "#BE1E2D" : "#888", textAlign: "center" }}>{s}</div></div>{i < 2 && <div style={{ flex: 1, height: 2, background: step > i + 1 ? "#27500A" : "#ddd", margin: "0 4px", marginBottom: 18 }} />}</React.Fragment>))}
+          {steps.map((s, i) => (<React.Fragment key={i}><div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 80 }}><div style={{ width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: step > i + 1 ? "#27500A" : step === i + 1 ? "#BE1E2D" : "#ddd", color: "#fff", fontSize: 14, fontWeight: 700 }}>{step > i + 1 ? "✓" : i + 1}</div><div style={{ fontSize: 12, marginTop: 6, color: step === i + 1 ? "#BE1E2D" : "#888", textAlign: "center", fontWeight: step === i + 1 ? 600 : 400 }}>{s}</div></div>{i < 2 && <div style={{ flex: 1, height: 2, background: step > i + 1 ? "#27500A" : "#ddd", margin: "0 4px", marginBottom: 18 }} />}</React.Fragment>))}
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 24, maxWidth: 620, margin: "0 auto" }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 12, padding: "32px 40px" }}>
           {/* Step 1 — Contract Details */}
           {step === 1 && (<>
             <div style={fld}><label style={lbl}>{t.sa.auditName}</label><input value={form.auditName} onChange={(e) => up("auditName", e.target.value)} placeholder="e.g. Murabaha Vehicle Finance Agreement #2024-001" /></div>
@@ -1087,7 +1163,7 @@ export default function App() {
               </div>
             </div>
             <div style={fld}><label style={lbl}>{t.sa.finAmount}</label><input type="number" value={form.finAmount} onChange={(e) => up("finAmount", e.target.value)} /></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div style={fld}><label style={lbl}>{t.sa.financier}</label><input value={form.financier} onChange={(e) => up("financier", e.target.value)} /></div>
               <div style={fld}><label style={lbl}>{t.sa.customer}</label><input value={form.customer} onChange={(e) => up("customer", e.target.value)} /></div>
             </div>
@@ -1144,8 +1220,8 @@ export default function App() {
             {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{error}</div>}
           </>)}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
-            {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "8px 18px", fontSize: 13 }}>{t.sa.prev}</button> : <div />}
-            {step < 3 ? <button onClick={() => setStep(step + 1)} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 18px", fontSize: 13, fontWeight: 600 }}>{t.sa.next}</button> : <button onClick={submit} disabled={loading} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 22px", fontSize: 13, fontWeight: 600 }}>{loading ? t.sa.analyzing : t.sa.runAudit}</button>}
+            {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "12px 24px", fontSize: 14 }}>{t.sa.prev}</button> : <div />}
+            {step < 3 ? <button onClick={() => setStep(step + 1)} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600 }}>{t.sa.next}</button> : <button onClick={submit} disabled={loading} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 28px", fontSize: 15, fontWeight: 600 }}>{loading ? t.sa.analyzing : t.sa.runAudit}</button>}
           </div>
         </div>
       </div>
@@ -1168,7 +1244,7 @@ export default function App() {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>{t.sa.resultTitle}</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700 }}>{t.sa.resultTitle}</h2>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={save} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "7px 16px", fontSize: 12, fontWeight: 600 }}>{t.sa.saveAudit}</button>
             <button onClick={() => setScreen("saNewAudit")} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "7px 16px", fontSize: 12 }}>{t.sa.newAuditBtn}</button>
@@ -1182,7 +1258,7 @@ export default function App() {
         </div>
         {/* Dimension Breakdown */}
         {dims.length > 0 && (
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.sa.dimBreakdown}</div>
             {dims.map((d, i) => { const dsc = saScoreColor(d.score || 0); return (
               <div key={i} style={{ marginBottom: 10 }}>
@@ -1197,7 +1273,7 @@ export default function App() {
         )}
         {/* Violations */}
         {violations.length > 0 && (
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: "#BE1E2D" }}>{t.sa.violationsTitle} ({violations.length})</div>
             {violations.map((v, i) => (
               <div key={i} style={{ padding: 12, background: v.severity === "Major" || v.severity === "جسيمة" ? "#fcebeb" : "#fff8e6", borderRadius: 8, marginBottom: 8, border: `0.5px solid ${v.severity === "Major" || v.severity === "جسيمة" ? "#f5c6cb" : "#ffeaa7"}` }}>
@@ -1214,7 +1290,7 @@ export default function App() {
         )}
         {/* Recommendations */}
         {recommendations.length > 0 && (
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.sa.recsTitle}</div>
             {recommendations.map((rec, i) => (
               <div key={i} style={{ padding: 10, background: "#f9f9fb", borderRadius: 6, marginBottom: 6, fontSize: 12 }}>
@@ -1225,7 +1301,7 @@ export default function App() {
         )}
         {/* Fatwa References */}
         {fatwas.length > 0 && (
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20, marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>{t.sa.fatwaTitle}</div>
             {fatwas.map((f, i) => (
               <div key={i} style={{ padding: 10, background: "#f0f7ff", borderRadius: 6, marginBottom: 6, border: "0.5px solid #c8dff7" }}>
@@ -1237,7 +1313,7 @@ export default function App() {
         )}
         {/* Summary */}
         {r.summary && (
-          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+          <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{t.sa.summaryTitle}</div>
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "#333" }}>{r.summary}</div>
           </div>
@@ -1264,8 +1340,8 @@ export default function App() {
     });
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{t.sa.histTitle}</h2>
-        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{t.sa.histTitle}</h2>
+        <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
           <input placeholder={t.sa.searchPlaceholder} value={search} onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 240 }} />
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ maxWidth: 180 }}>
             <option value="all">{t.sa.filterAll}</option>
@@ -1274,7 +1350,7 @@ export default function App() {
             <option value="major">{t.sa.filterMajor}</option>
           </select>
         </div>
-        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+        <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
           {filtered.length === 0 ? <div style={{ textAlign: "center", color: "#888", padding: 32, fontSize: 13 }}>{t.sa.empty}</div> : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead><tr style={{ borderBottom: "1px solid #eee" }}>{[t.sa.date, t.sa.name, t.sa.type, t.sa.score, t.sa.status, t.sa.violations, ""].map((h, i) => <th key={i} style={{ textAlign: isRtl ? "right" : "left", padding: "8px 6px", fontWeight: 600, fontSize: 11, color: "#888" }}>{h}</th>)}</tr></thead>
@@ -1303,10 +1379,10 @@ export default function App() {
     const standards = t.sa.standardsLib;
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{t.sa.stdLibTitle}</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{t.sa.stdLibTitle}</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {standards.map((std, i) => (
-            <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 }}>
+            <div key={i} style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{std.name}</div>
                 <span style={{ fontSize: 10, background: "#f0f0f4", padding: "2px 8px", borderRadius: 4 }}>{std.code}</span>
@@ -1326,7 +1402,7 @@ export default function App() {
      ═══════════════════════════════════════════════════════════════ */
   const Settings = () => (
     <div>
-      <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{t.settings.title}</h2>
+      <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{t.settings.title}</h2>
       <div style={{ background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 20, maxWidth: 480 }}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{t.settings.langLabel}</div>
@@ -1513,9 +1589,9 @@ export default function App() {
   };
 
   return (
-    <div dir={isRtl ? "rtl" : "ltr"} style={{ fontFamily: "'Inter', sans-serif", display: "flex", minHeight: "100vh", background: "#f4f4f7", color: "#1a1a1a" }}>
+    <div dir={isRtl ? "rtl" : "ltr"} style={{ fontFamily: "'Inter', sans-serif", display: "flex", width: "100%", minHeight: "100vh", background: "#f4f4f7", color: "#1a1a1a" }}>
       <Sidebar />
-      <div style={{ flex: 1, padding: "24px 28px", maxWidth: 960, margin: "0 auto" }}>
+      <div style={{ flex: 1, padding: "32px 40px", overflowY: "auto" }}>
         {renderScreen()}
       </div>
     </div>

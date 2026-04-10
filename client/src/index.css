@@ -1,4 +1,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
 body {
   font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
   background: #f4f4f7;
@@ -6,28 +11,42 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
 }
 input, select, textarea {
   width: 100%;
-  padding: 9px 12px;
+  padding: 14px 16px;
   border: 1px solid #d8d8dc;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 15px;
   font-family: inherit;
   background: #fff;
   color: #1a1a1a;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 48px;
 }
 input:focus, select:focus, textarea:focus {
   border-color: #BE1E2D;
   box-shadow: 0 0 0 3px rgba(190,30,45,0.08);
 }
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+label, .field-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  display: block;
+}
 button {
   font-family: inherit;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.2s ease;
+  font-size: 15px;
 }
 button:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -85,6 +104,20 @@ table tbody tr {
 }
 table tbody tr:hover {
   background-color: rgba(0,0,0,0.02) !important;
+}
+
+/* Table styling */
+table {
+  font-size: 14px;
+}
+table th {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+table td {
+  padding: 12px 10px;
 }
 
 /* Responsive adjustments */

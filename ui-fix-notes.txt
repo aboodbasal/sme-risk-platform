@@ -1,0 +1,8 @@
+UI Fix Observations:
+1. The form card is still not wide enough - it's centered with lots of empty space on the right
+2. The main content area has a maxWidth constraint that limits it
+3. The sidebar is taking about 200px, content area needs to fill the remaining space
+4. Need to remove maxWidth from the content wrapper and form cards, or set them much wider
+5. The step indicators are bigger now (36px circles, 12px labels) - looks better
+6. Input fields are taller with the CSS changes
+7. Need to make the content area use flex: 1 and fill available space

@@ -1,0 +1,19 @@
+Quick Demo Test Results:
+
+1. SME RISK - Quick Demo: ✅ WORKING PERFECTLY
+   - Button shows "Analyzing..." with spinner while processing
+   - AI returned full Risk Analysis Report for شركة النور للخدمات اللوجستية (Al-Noor Logistics)
+   - Risk Score: 85 (High)
+   - Recommendation: ارفض (Reject)
+   - Full Arabic analysis with:
+     - Executive Summary
+     - Strengths (3 items)
+     - Risk Factors (3 items)
+     - Sharia Compliance notes
+     - SAMA Regulatory Notes (2 flags)
+     - SAMA Compliance Checks (6 badges: 1 fail, 5 pass)
+     - Conditions (3 items)
+   - Save to Portfolio and New Analysis buttons visible
+   - Content fills full width ✅
+
+Still need to test: Credit Scoring, Sharia Audit, Collections, Vehicle Valuation Quick Demos

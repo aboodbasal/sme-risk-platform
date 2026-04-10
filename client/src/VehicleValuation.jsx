@@ -259,11 +259,41 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
   const isRtl = lang === "ar";
   const [valuations, setValuations] = useState(() => loadS(VV_KEY, SAMPLE_HISTORY));
   const [viewResult, setViewResult] = useState(null);
+  const [demoLoading, setDemoLoading] = useState(false);
   useEffect(() => { saveS(VV_KEY, valuations); }, [valuations]);
 
-  const card = { background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 };
-  const inputS = { width: "100%", padding: "8px 10px", border: "0.5px solid #d0d0d0", borderRadius: 6, fontSize: 13, boxSizing: "border-box" };
-  const btnP = { background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 18px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" };
+  /* Quick Demo for Vehicle Valuation */
+  const runDemoVehicle = async () => {
+    setDemoLoading(true);
+    const demoForm = {
+      customerName: "Fahad Al-Qahtani", customerId: "1088776655", finRef: "TWK-VF-2024-089",
+      make: "Toyota", model: "Camry GLE", year: "2023", bodyType: "Sedan",
+      engineSize: "2.5-3.0L", transmission: "Automatic", fuelType: "Petrol",
+      driveType: "2WD", color: "Pearl White", origin: "Saudi Arabia",
+      mileage: "28000", condition: "Very Good \u2014 Minor wear, fully functional",
+      accidentHistory: "No accidents", serviceHistory: "Full documented history",
+      registration: "Valid", fahas: "Valid", modifications: "None",
+      prevOwners: "1 (first owner)", collateral: "Yes",
+      declaredValue: "115000", financingAmount: "92000", financingType: "Murabaha (vehicle purchase)",
+    };
+    const msg = `Vehicle Valuation Request:\nMake: Toyota | Model: Camry GLE | Year: 2023\nBody Type: Sedan | Engine: 2.5-3.0L | Transmission: Automatic\nFuel: Petrol | Drive: 2WD | Origin: Saudi Arabia\nMileage: 28000 km\nCondition: Very Good \u2014 Minor wear, fully functional\nAccident History: No accidents\nService History: Full documented history\nRegistration: Valid\nModifications: None\nPrevious Owners: 1 (first owner)\nCustomer Declared Value: SAR 115000\nFinancing Requested: SAR 92000\nFinancing Type: Murabaha (vehicle purchase)\n\nPlease provide a comprehensive valuation with market comparisons.`;
+    try {
+      const resp = await fetch("/api/vehicle-valuation", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userMessage: msg, lang }),
+      });
+      const data = await resp.json();
+      if (data.error) { setViewResult({ error: data.error, form: demoForm }); setScreen("vvResult"); setDemoLoading(false); return; }
+      const result = { ...data.result, form: demoForm, date: new Date().toISOString().split("T")[0], id: `VAL-${Date.now()}` };
+      setViewResult(result);
+      setScreen("vvResult");
+    } catch (err) { setViewResult({ error: err.message, form: demoForm }); setScreen("vvResult"); }
+    setDemoLoading(false);
+  };
+
+  const card = { background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 };
+  const inputS = { width: "100%", padding: "10px 12px", border: "0.5px solid #d0d0d0", borderRadius: 6, fontSize: 14, boxSizing: "border-box" };
+  const btnP = { background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 15, fontWeight: 600, cursor: "pointer" };
   const badge = (sc) => ({ display: "inline-block", padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.text, border: `1px solid ${sc.border || sc.bg}` });
 
   /* ── DASHBOARD ── */
@@ -277,7 +307,15 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
 
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{vt.dash.title}</h2>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 24, fontWeight: 700 }}>{vt.dash.title}</h2>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={runDemoVehicle} disabled={demoLoading} style={{ background: "#1a1a2e", color: "#fff", border: "none", padding: "12px 24px", fontSize: 14, fontWeight: 600, borderRadius: 8, cursor: demoLoading ? "wait" : "pointer", opacity: demoLoading ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
+              {demoLoading ? <span className="spin" style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%" }} /> : "\uD83C\uDFAF"} {demoLoading ? "Valuating..." : "Quick Demo"}
+            </button>
+            <button onClick={() => setScreen("vvWizard")} style={{ background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 24px", fontSize: 15, fontWeight: 600, borderRadius: 8, cursor: "pointer" }}>{vt.nav.newVal}</button>
+          </div>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 16 }}>
           {[[vt.dash.totalVals, total], [vt.dash.avgValue, `SAR ${fmtSAR(avgVal)}`], [vt.dash.fraudFlags, fraudCount, "#BE1E2D"], [vt.dash.protectedSAR, `SAR ${fmtSAR(protectedSAR)}`]].map(([l, v, c], i) => (
             <div key={i} style={card}><div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>{l}</div><div style={{ fontSize: 22, fontWeight: 700, color: c || "#1a1a1a" }}>{v}</div></div>
@@ -397,7 +435,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
     const steps = [w.step1, w.step2, w.step3];
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{w.step1} — {w.step2} — {w.step3}</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{w.step1} — {w.step2} — {w.step3}</h2>
         <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
           {steps.map((s, i) => (
             <div key={i} style={{ flex: 1, padding: "8px 0", textAlign: "center", fontSize: 12, fontWeight: step === i ? 700 : 400, color: step === i ? "#BE1E2D" : "#888", borderBottom: step === i ? "2px solid #BE1E2D" : "1px solid #e8e8e8" }}>{i + 1}. {s}</div>
@@ -405,7 +443,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
         </div>
         <div style={card}>
           {step === 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               {field(w.customerName, "customerName")}
               {field(w.customerId, "customerId")}
               {field(w.finRef, "finRef")}
@@ -428,7 +466,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
             </div>
           )}
           {step === 1 && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               {field(w.mileage, "mileage", "number")}
               {sel(w.condition, "condition", w.conditions)}
               {sel(w.accidentHistory, "accidentHistory", w.accidents)}
@@ -496,7 +534,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div>
-            <h2 style={{ fontSize: 20, fontWeight: 700 }}>{vt.result.title}</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700 }}>{vt.result.title}</h2>
             <div style={{ fontSize: 12, color: "#888" }}>{f.make} {f.model} {f.year} — {f.customerName} — {r.date}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -557,7 +595,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
           </div>
         )}
         {/* Value Factors */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           {r.valueFactors?.boosters?.length > 0 && (
             <div style={card}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#27500A" }}>{vt.result.boosters}</div>
@@ -574,7 +612,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
         {/* Depreciation */}
         <div style={{ ...card, marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{vt.result.deprecTitle}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, fontSize: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, fontSize: 12 }}>
             <div><span style={{ color: "#888" }}>{vt.result.current}:</span><div style={{ fontSize: 18, fontWeight: 700 }}>SAR {fmtSAR(r.estimatedValue)}</div></div>
             <div><span style={{ color: "#888" }}>{vt.result.in12}:</span><div style={{ fontSize: 18, fontWeight: 700 }}>SAR {fmtSAR(r.valueIn12Months)}</div></div>
             <div><span style={{ color: "#888" }}>{vt.result.in24}:</span><div style={{ fontSize: 18, fontWeight: 700 }}>SAR {fmtSAR(r.valueIn24Months)}</div></div>
@@ -636,7 +674,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>{vt.history.title}</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700 }}>{vt.history.title}</h2>
           <button onClick={() => window.print()} style={btnP}>{vt.history.exportBtn}</button>
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -689,7 +727,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
 
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{m.title}</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{m.title}</h2>
         {/* Top Financed */}
         <div style={{ ...card, marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{m.topFinanced}</div>

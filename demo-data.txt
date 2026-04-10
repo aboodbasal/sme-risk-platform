@@ -1,0 +1,56 @@
+QUICK DEMO DATA REFERENCE
+=========================
+
+TOOL 1 — SME Risk:
+companyName: "شركة النور للخدمات اللوجستية"
+sector: "Logistics & Transportation"
+years: 6, employees: 35
+revenue: 3600000, amount: 1200000
+purpose: "شراء 5 شاحنات توصيل وتوسعة المستودع الرئيسي"
+cr: "valid", zatca: "compliant", simah: "clean", saudization: "45"
+
+TOOL 2 — Credit Scoring:
+applicantType: "individual"
+fullName: "محمد عبدالله الرشيدي"
+nationalId: "1023456789", nationality: "Saudi", city: "Riyadh"
+employment: "Government", employer: "وزارة الصحة"
+salary: 18500, yearsAtJob: 7
+amount: 320000, purpose: "شراء سيارة عائلية"
+financingType: "Murabaha", tenor: 48
+obligations: 2200, simahScore: "Good (650-749)"
+simahRemarks: "Clean", absher: "Verified"
+previousDefaults: "No"
+
+TOOL 3 — Sharia Audit:
+auditName: "عقد مرابحة سيارات #2024-089"
+contractType: "Murabaha"
+standards: "AAOIFI + SAMA"
+amount: 320000
+contractText: [the full Murabaha agreement text]
+
+TOOL 4 — Collections:
+customerName: "شركة الأمل للمقاولات"
+accountId: "TWK-2024-067"
+customerType: "SME", product: "Ijarah"
+originalAmount: 2800000, outstanding: 2450000
+monthlyInstallment: 58000, dpd: 52, missed: 2
+paymentPattern: "Deteriorating"
+businessChange: "Business revenue decline"
+contactResponsiveness: "Sometimes responsive"
+restructuring: "No", legal: "No"
+collateral: "Real Estate", simahChange: "Deteriorated"
+notes: "العميل أبلغ عن انخفاض في العقود الحكومية..."
+
+TOOL 5 — Vehicle Valuation:
+customerName: "فيصل محمد الدوسري"
+appRef: "APP-2024-1892"
+make: "Toyota", model: "Land Cruiser"
+year: 2021, body: "SUV", engine: "4.0L+"
+transmission: "Automatic", fuel: "Petrol"
+drive: "4WD", origin: "GCC Specs"
+mileage: 68000, condition: "Very Good"
+accident: "No accidents", service: "Full documented history"
+registration: "Valid", fahas: "Valid"
+modifications: "None", previousOwners: 1
+declaredValue: 285000, financingRequested: 228000
+financingType: "Murabaha"

@@ -270,14 +270,31 @@ export default function Collections({ lang, screen, setScreen }) {
   const [callList, setCallList] = useState(() => loadS(COL_CALLLIST_KEY));
   const [viewResult, setViewResult] = useState(null);
   const [sortField, setSortField] = useState("dpd");
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  /* Quick Demo for Collections */
+  const runDemoCollections = async () => {
+    setDemoLoading(true);
+    const demoAcct = {
+      id: "TWK-2024-067", name: "\u0634\u0631\u0643\u0629 \u0627\u0644\u0623\u0645\u0644 \u0644\u0644\u0645\u0642\u0627\u0648\u0644\u0627\u062a", type: "SME", product: "Ijarah",
+      original: 2800000, outstanding: 2450000, installment: 58000, dpd: 52, missed: 2,
+      pattern: "Deteriorating (getting worse)", empChange: "Business revenue decline",
+      contactResp: "Sometimes responsive", restructured: "No", legalAction: "No",
+      collateral: "Real Estate", simahChange: "Deteriorated",
+      notes: "\u0627\u0644\u0639\u0645\u064a\u0644 \u0623\u0628\u0644\u063a \u0639\u0646 \u0627\u0646\u062e\u0641\u0627\u0636 \u0641\u064a \u0627\u0644\u0639\u0642\u0648\u062f \u0627\u0644\u062d\u0643\u0648\u0645\u064a\u0629 \u0628\u0633\u0628\u0628 \u062a\u0623\u062e\u0631 \u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639. \u0644\u062f\u064a\u0647 \u0639\u0642\u0648\u062f \u0645\u0639\u0644\u0642\u0629 \u0628\u0642\u064a\u0645\u0629 4.5 \u0645\u0644\u064a\u0648\u0646 \u0631\u064a\u0627\u0644",
+      tier: "At-Risk", probability: 50, lastAction: "New",
+    };
+    await analyzeAccount(demoAcct);
+    setDemoLoading(false);
+  };
 
   useEffect(() => { saveS(COL_KEY, accounts); }, [accounts]);
   useEffect(() => { saveS(COL_RESULTS_KEY, colResults); }, [colResults]);
   useEffect(() => { saveS(COL_CALLLIST_KEY, callList); }, [callList]);
 
-  const card = { background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 8, padding: 16 };
-  const inputS = { width: "100%", padding: "8px 10px", border: "0.5px solid #d0d0d0", borderRadius: 6, fontSize: 13, boxSizing: "border-box" };
-  const btnPrimary = { background: "#BE1E2D", color: "#fff", border: "none", padding: "8px 18px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" };
+  const card = { background: "#fff", border: "0.5px solid #e8e8e8", borderRadius: 10, padding: 20 };
+  const inputS = { width: "100%", padding: "10px 12px", border: "0.5px solid #d0d0d0", borderRadius: 6, fontSize: 14, boxSizing: "border-box" };
+  const btnPrimary = { background: "#BE1E2D", color: "#fff", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 15, fontWeight: 600, cursor: "pointer" };
   const badge = (tc) => ({ display: "inline-block", padding: "2px 10px", borderRadius: 12, fontSize: 11, fontWeight: 600, background: tc.bg, color: tc.text, border: `1px solid ${tc.border || tc.bg}` });
 
   /* ── DASHBOARD ── */
@@ -299,8 +316,13 @@ export default function Collections({ lang, screen, setScreen }) {
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>{ct.dash.title}</h2>
-          <button onClick={() => { generateCallList(); setScreen("colCallList"); }} style={btnPrimary}>{ct.dash.analyzeAll}</button>
+          <h2 style={{ fontSize: 24, fontWeight: 700 }}>{ct.dash.title}</h2>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={runDemoCollections} disabled={demoLoading} style={{ background: "#1a1a2e", color: "#fff", border: "none", padding: "12px 24px", fontSize: 14, fontWeight: 600, borderRadius: 8, cursor: demoLoading ? "wait" : "pointer", opacity: demoLoading ? 0.7 : 1, display: "flex", alignItems: "center", gap: 8 }}>
+              {demoLoading ? <span className="spin" style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid #fff", borderRadius: "50%" }} /> : "\uD83C\uDFAF"} {demoLoading ? "Analyzing..." : "Quick Demo"}
+            </button>
+            <button onClick={() => { generateCallList(); setScreen("colCallList"); }} style={btnPrimary}>{ct.dash.analyzeAll}</button>
+          </div>
         </div>
         {/* KPI Row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 16 }}>
@@ -477,14 +499,14 @@ export default function Collections({ lang, screen, setScreen }) {
 
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{ct.ew.title}</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{ct.ew.title}</h2>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           <button onClick={() => setMode("single")} style={{ ...btnPrimary, background: mode === "single" ? "#BE1E2D" : "#fff", color: mode === "single" ? "#fff" : "#1a1a1a", border: "0.5px solid #d0d0d0" }}>{ct.ew.modeA}</button>
           <button onClick={() => setMode("bulk")} style={{ ...btnPrimary, background: mode === "bulk" ? "#BE1E2D" : "#fff", color: mode === "bulk" ? "#fff" : "#1a1a1a", border: "0.5px solid #d0d0d0" }}>{ct.ew.modeB}</button>
         </div>
         {mode === "single" ? (
           <div style={card}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               {field(ct.ew.accountId, "accountId")}
               {field(ct.ew.customerName, "customerName")}
               {sel(ct.ew.customerType, "customerType", [ct.ew.individual, ct.ew.sme])}
@@ -543,7 +565,7 @@ export default function Collections({ lang, screen, setScreen }) {
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div>
-            <h2 style={{ fontSize: 20, fontWeight: 700 }}>{ct.res.title}</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700 }}>{ct.res.title}</h2>
             <div style={{ fontSize: 12, color: "#888" }}>{acct.name} — {acct.id} — {acct.product}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -552,7 +574,7 @@ export default function Collections({ lang, screen, setScreen }) {
           </div>
         </div>
         {/* Probability Gauge */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
           <div style={{ ...card, textAlign: "center" }}>
             <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>{ct.res.defaultProb}</div>
             <div style={{ width: 100, height: 100, borderRadius: "50%", border: `6px solid ${pc}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 8px", fontSize: 28, fontWeight: 700, color: pc }}>{prob}%</div>
@@ -575,7 +597,7 @@ export default function Collections({ lang, screen, setScreen }) {
             {r.recommendedActions.map((a, i) => {
               const ab = actionBadge(a.actionType);
               return (
-                <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < r.recommendedActions.length - 1 ? "0.5px solid #f0f0f0" : "none" }}>
+                <div key={i} style={{ display: "flex", gap: 16, padding: "10px 0", borderBottom: i < r.recommendedActions.length - 1 ? "0.5px solid #f0f0f0" : "none" }}>
                   <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#BE1E2D", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{a.priority}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
@@ -591,7 +613,7 @@ export default function Collections({ lang, screen, setScreen }) {
           </div>
         )}
         {/* Warning & Positive Signals */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
           {r.warningSignals?.length > 0 && (
             <div style={{ ...card }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: "#EF9F27" }}>{ct.res.warningSignals}</div>
@@ -620,7 +642,7 @@ export default function Collections({ lang, screen, setScreen }) {
         )}
         {/* Collection Scripts */}
         {r.collectionScript && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ ...card }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{ct.res.collectionScript}</div>
               <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>{ct.res.opening}</div>
@@ -655,7 +677,7 @@ export default function Collections({ lang, screen, setScreen }) {
         {/* Escalation */}
         <div style={{ ...card, marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{ct.res.escalation}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, fontSize: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, fontSize: 12 }}>
             <div><span style={{ color: "#888" }}>{ct.res.escalateManager}:</span> <strong>{r.escalateToManager ? "Yes" : "No"}</strong></div>
             <div><span style={{ color: "#888" }}>{ct.res.initiateLegal}:</span> <strong style={{ color: r.inititateLegal ? "#BE1E2D" : "#27500A" }}>{r.inititateLegal ? "Yes" : "No"}</strong></div>
             <div><span style={{ color: "#888" }}>{ct.res.estimatedRecovery}:</span> <strong>{r.estimatedRecovery || "N/A"}</strong></div>
@@ -683,7 +705,7 @@ export default function Collections({ lang, screen, setScreen }) {
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div>
-            <h2 style={{ fontSize: 20, fontWeight: 700 }}>{ct.cl.title}</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 700 }}>{ct.cl.title}</h2>
             <div style={{ fontSize: 12, color: "#888" }}>{new Date().toLocaleDateString(lang === "ar" ? "ar-SA" : "en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
           </div>
           <button onClick={() => window.print()} style={btnPrimary}>{ct.cl.exportBtn}</button>
@@ -773,9 +795,9 @@ export default function Collections({ lang, screen, setScreen }) {
     };
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{ct.add.title}</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{ct.add.title}</h2>
         <div style={card}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {field(ct.add.accountId, "accountId")}
             {field(ct.add.customerName, "customerName")}
             {sel(ct.add.customerType, "customerType", [ct.add.individual, ct.add.sme])}
@@ -832,7 +854,7 @@ export default function Collections({ lang, screen, setScreen }) {
 
     return (
       <div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{ct.rpt.title}</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>{ct.rpt.title}</h2>
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           {["aging", "risk", "sama"].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ ...btnPrimary, background: tab === t ? "#BE1E2D" : "#fff", color: tab === t ? "#fff" : "#1a1a1a", border: "0.5px solid #d0d0d0" }}>

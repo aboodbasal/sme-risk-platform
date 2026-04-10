@@ -1,0 +1,13 @@
+Demo Test Observations:
+1. Dashboard is now full-width - KPI cards stretch across the content area ✓
+2. Quick Demo button visible on SME Risk Dashboard (dark navy with 🎯 icon) ✓
+3. New Analysis button visible (red) ✓
+4. Sidebar sections are all expanded - all 26 items visible at once
+5. The sidebar sections are still all expanded by default - the accordion collapse is working but all start expanded
+6. The content area fills the full width properly now ✓
+
+Issues to note:
+- Sidebar section headers are still truncated: "CREDIT SCORIN...", "SHARIA AUDIT", "COLLECTIONS &...", "VEHICLE VALU..."
+- But this is a minor cosmetic issue, the accordion works
+
+Next: Test clicking Quick Demo button to see if it auto-submits and shows AI results
