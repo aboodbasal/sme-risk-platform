@@ -283,7 +283,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
         body: JSON.stringify({ userMessage: msg, lang }),
       });
       const data = await resp.json();
-      if (data.error) { setViewResult({ error: data.error, form: demoForm }); setScreen("vvResult"); setDemoLoading(false); return; }
+      if (data.error) { setViewResult({ error: data.error?.message || data.error, form: demoForm }); setScreen("vvResult"); setDemoLoading(false); return; }
       const result = { ...data.result, form: demoForm, date: new Date().toISOString().split("T")[0], id: `VAL-${Date.now()}` };
       setViewResult(result);
       setScreen("vvResult");
@@ -424,7 +424,7 @@ export default function VehicleValuation({ lang, screen, setScreen }) {
           body: JSON.stringify({ userMessage: msg, lang }),
         });
         const data = await resp.json();
-        if (data.error) { setViewResult({ error: data.error, form }); setScreen("vvResult"); setLoading(false); return; }
+        if (data.error) { setViewResult({ error: data.error?.message || data.error, form }); setScreen("vvResult"); setLoading(false); return; }
         const result = { ...data.result, form, date: new Date().toISOString().split("T")[0], id: `VAL-${Date.now()}` };
         setViewResult(result);
         setScreen("vvResult");

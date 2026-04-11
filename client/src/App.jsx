@@ -491,7 +491,7 @@ export default function App() {
     try {
       const res = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "API error");
+      if (!res.ok) throw new Error(data.error?.message || data.error || "API error");
       const result = data.result;
       const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), riskScore: result.riskScore, riskLevel: result.riskLevel, recommendation: result.recommendation, formData: form, ...result };
       setViewResult(appEntry); setViewForm(form); setScreen("result");
@@ -512,7 +512,7 @@ export default function App() {
     try {
       const res = await fetch("/api/credit-score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "API error");
+      if (!res.ok) throw new Error(data.error?.message || data.error || "API error");
       const result = data.result;
       const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), creditScore: result.creditScore, scoreLabel: result.scoreLabel, eligibility: result.eligibility, formData: form, ...result };
       setViewResult(appEntry); setViewForm(form); setScreen("csResult");
@@ -526,7 +526,7 @@ export default function App() {
     try {
       const res = await fetch("/api/sharia-audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "API error");
+      if (!res.ok) throw new Error(data.error?.message || data.error || "API error");
       const result = data.result;
       const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), complianceScore: result.complianceScore, complianceStatus: result.complianceStatus, formData: form, ...result };
       setViewResult(appEntry); setViewForm(form); setScreen("saResult");
@@ -631,7 +631,7 @@ export default function App() {
       try {
         const res = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "API error");
+        if (!res.ok) throw new Error(data.error?.message || data.error || "API error");
         const result = data.result;
         const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), riskScore: result.riskScore, riskLevel: result.riskLevel, recommendation: result.recommendation, formData: form, ...result };
         setViewResult(appEntry); setViewForm(form); setScreen("result");
@@ -689,7 +689,7 @@ export default function App() {
           {step === 4 && (<>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t.wizard.review}</div>
             {[[t.wizard.companyName, form.companyName],[t.wizard.sector, form.sector],[t.wizard.years, form.years],[t.wizard.employees, form.employees],[t.wizard.revenue, `SAR ${Number(form.revenue).toLocaleString()}`],[t.wizard.financing, `SAR ${Number(form.financing).toLocaleString()}`],[t.wizard.purpose, form.purpose],[t.wizard.ratio, `${ratioPercent}%`],[t.wizard.cr, form.cr === "valid" ? t.wizard.valid : t.wizard.expired],[t.wizard.zatca, form.zatca === "compliant" ? t.wizard.compliant : t.wizard.nonCompliant],[t.wizard.simah, form.simah === "clean" ? t.wizard.clean : form.simah === "minor" ? t.wizard.minorIssues : t.wizard.majorIssues],[t.wizard.saudization, `${form.saudization}%`]].map(([k, v], i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f0f0f0", fontSize: 13 }}><span style={{ color: "#888" }}>{k}</span><span style={{ fontWeight: 600 }}>{v || "—"}</span></div>)}
-            {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{error}</div>}
+            {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{typeof error === "string" ? error : error?.message || JSON.stringify(error)}</div>}
           </>)}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
             {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "12px 24px", fontSize: 14 }}>{t.wizard.prev}</button> : <div />}
@@ -888,7 +888,7 @@ export default function App() {
       try {
         const res = await fetch("/api/credit-score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "API error");
+        if (!res.ok) throw new Error(data.error?.message || data.error || "API error");
         const result = data.result;
         const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), creditScore: result.creditScore, scoreLabel: result.scoreLabel, eligibility: result.eligibility, formData: form, ...result };
         setViewResult(appEntry); setViewForm(form); setScreen("csResult");
@@ -924,7 +924,7 @@ export default function App() {
               <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 10 }}>{t.cs.samaChecks}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>{samaChecks.map((c, i) => <div key={i} style={{ padding: "6px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600, textAlign: "center", background: c.pass ? "#eaf3de" : "#fcebeb", color: c.pass ? "#27500A" : "#501313" }}>{c.pass ? "✓" : "✗"} {c.label}</div>)}</div>
             </div>
-            {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{error}</div>}
+            {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{typeof error === "string" ? error : error?.message || JSON.stringify(error)}</div>}
           </>)}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
             {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "12px 24px", fontSize: 14 }}>{t.cs.prev}</button> : <div />}
@@ -1131,7 +1131,7 @@ export default function App() {
       try {
         const res = await fetch("/api/sharia-audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userMessage: msg, lang }) });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "API error");
+        if (!res.ok) throw new Error(data.error?.message || data.error || "API error");
         const result = data.result;
         const appEntry = { id: Date.now().toString(), date: new Date().toISOString(), complianceScore: result.complianceScore, complianceStatus: result.complianceStatus, formData: { ...form, contractTypeShort: typeShort[typeOptions.indexOf(form.contractType)] || form.contractType }, ...result };
         setViewResult(appEntry); setViewForm(form); setScreen("saResult");
@@ -1217,7 +1217,7 @@ export default function App() {
           {step === 3 && (<>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>{t.sa.reviewTitle}</div>
             {[[t.sa.auditName, form.auditName], [t.sa.contractType, form.contractType], [t.sa.standards, stdLabels.filter((_, i) => form.standards[i]).join(", ")], [t.sa.finAmount, form.finAmount ? `SAR ${Number(form.finAmount).toLocaleString()}` : "—"], [t.sa.contractLang, form.contractLang], [inputTab === "paste" ? t.sa.textLength : t.sa.clauseCount, inputTab === "paste" ? `${pasteText.length} ${t.sa.charCount}` : `${clauses.filter(c => c.text.trim()).length}`]].map(([k, v], i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #f0f0f0", fontSize: 13 }}><span style={{ color: "#888" }}>{k}</span><span style={{ fontWeight: 600 }}>{v || "—"}</span></div>)}
-            {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{error}</div>}
+            {error && <div style={{ marginTop: 12, padding: 10, background: "#fcebeb", color: "#501313", borderRadius: 6, fontSize: 12 }}>{typeof error === "string" ? error : error?.message || JSON.stringify(error)}</div>}
           </>)}
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 20 }}>
             {step > 1 ? <button onClick={() => setStep(step - 1)} style={{ background: "none", border: "0.5px solid #d0d0d0", padding: "12px 24px", fontSize: 14 }}>{t.sa.prev}</button> : <div />}

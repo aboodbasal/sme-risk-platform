@@ -445,7 +445,7 @@ export default function Collections({ lang, screen, setScreen }) {
         body: JSON.stringify({ userMessage: msg, lang }),
       });
       const data = await resp.json();
-      if (data.error) { setViewResult({ error: data.error, account: acct }); return; }
+      if (data.error) { setViewResult({ error: data.error?.message || data.error, account: acct }); return; }
       const result = { ...data.result, account: acct, date: new Date().toISOString() };
       setViewResult(result);
       setColResults(prev => [result, ...prev]);
